@@ -33,9 +33,11 @@ xDebug = 10
 yDebug = 10
 countDebugMsgs = 1
 MsgDebugTable = {}
-MsgDebugTable[1] = "Mensagens para debug:"
+MsgDebugTable[1] = "Prover debug messages:-----------------------------------"
 
 -- Button names
 expandAllButtonName = "Expand All"
-
+inputFormulaButtonName = "Input Formula"
+expandFormulaButtonName = "Expand Formula"
+printProofButtonName = "Print Proof"
 buttonTime = 150

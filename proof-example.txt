@@ -1,0 +1,5 @@
+(P imp (Q)) imp ((R imp (P)) imp (R imp (P)))
+
+(P imp (Q imp (R))) imp (Q imp (P imp (R)))
+
+P imp (Q imp (P))

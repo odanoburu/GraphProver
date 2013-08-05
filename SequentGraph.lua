@@ -9,7 +9,7 @@
 
 ]]--
 
-require 'ConstantsForSequent'
+require "ConstantsForSequent"
 require 'Graph'
 
 -- Contadores dos operadores
@@ -58,17 +58,18 @@ function SequentNode:new(labelNode) -- testar esse override
 
 	newNode:setInformation("type", typeNode)
 	newNode:setInformation("isExpanded", false)
-	
+
+-- Alterado em 31-12-2012 para iniciar as listas edgesIn e edgesOut de cada noh (Hermann)
+	newNode:initEdgesIn()
+	newNode:initEdgesOut()
+-- Fim alteracao (Hermann 31-12-2012)
+
 	return newNode
-
 end
-
-
 
 --[[ 
 	Defining the SequentEdge, extends Edge
 ]]--
-
 SequentEdge = {}-- = Edge:new("SequentEdgeClass", )
 
 --[[
@@ -82,11 +83,11 @@ function SequentEdge:new(label, origem, destino)
 		return Edge:new(label, origem, destino)
 	end
 	
-	-- é a string vazia
+	-- Ã© a string vazia
 	local labelNodeOrigin = string.sub(origem:getLabel(), 2)		
 	
 	if tonumber(labelNodeOrigin) == nil then
-		-- "SequentEdge:new só gera numeros para arestas que tenham origem em vertices com label: "..lblNodeEsq.."+numero ou "..lblNodeDir.."+numero "
+		-- "SequentEdge:new sÃ³ gera numeros para arestas que tenham origem em vertices com label: "..lblNodeEsq.."+numero ou "..lblNodeDir.."+numero "
 		return Edge:new(label, origem, destino)
 	end
 	
@@ -107,4 +108,5 @@ function SequentEdge:new(label, origem, destino)
 	return Edge:new(label, origem, destino)
 
 end
+
 

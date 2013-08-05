@@ -34,7 +34,7 @@ opSeq.tex = '\\vdash'
 opSeq.print = '=>'
 opSeq.graph = "Seq"
 
-operators = {} -- Tabela que contém todos os operadores
+operators = {} -- Tabela que contÃ©m todos os operadores
 operators[1] = opAnd
 operators[2] = opOr
 operators[3] = opImp
@@ -46,6 +46,7 @@ lblEdgeEsq = "esq"
 lblEdgeDir = "dir"
 lblEdgeDeducao = "DED"
 lblEdgeGoal = "Goal"
+lblEdgeContext = "Context"
 
 lblNodeGG = "GG"
 lblNodeEsq = "e"

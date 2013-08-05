@@ -3,6 +3,7 @@
 	Node Module
 
 	Author: Vitor
+        update/rev : Hermann (Dez/2012)
 
 ]]--
 
@@ -29,11 +30,12 @@ Node_Metatable = { __index = Node }
 ]]--
 function Node:new (label, x, y)
 	assert( type(label) == "string" , "Node:new expects a string." )
-	
+
 	local ini = {}
 	local xNotNil = false
 	local yNotNil = false
-	
+
+
 	if x ~= nil then 
 		assert( type(x) == "number" , "Node:new expects a number, x is not a number.")
 		xNotNil = true
@@ -88,7 +90,7 @@ function Node:setInformation(infoName, infoValue)
 end
 
 --[[
-	Retorna o valor da informaçao do campo infoName
+	Retorna o valor da informaÃ§ao do campo infoName
 	Param:
 		infoName: A string or a number containing the name of the field of the desired information.
 ]]--
@@ -205,6 +207,18 @@ function Node:setEdgesOut(edgesOut)
 	end
 	
 end
+-- The next two functions set the initial list of edges in and out to the emptylist (Hermann 31-12-2012)
+function Node:initEdgesIn()
+	if self.edgesIn == nil then
+		self.edgesIn = {}
+	end
+end
+
+function Node:initEdgesOut()
+	if self.edgesOut == nil then
+		self.edgesOut = {}
+	end
+end
 
 --- Returns all the edges that comes out of this node.
 function Node:getEdgesOut()
@@ -270,7 +284,7 @@ function Node:deleteEdgeOut(edge)
 	end
 	
 	if isEdgeDeleted then
-		-- nao é do final
+		-- nao Ã© do final
 		for i = positionOfTheEdge, #edgesOut do
 			edgesOut[i] = edgesOut[i+1]
 			edgesOut[i+1] = nil
@@ -284,7 +298,6 @@ function Node:deleteEdgeOut(edge)
 	
 	return false
 end
-
 
 function Node:deleteEdgeIn(edge)
 	local edgesIn = self:getEdgesIn()
@@ -310,7 +323,7 @@ function Node:deleteEdgeIn(edge)
 	end
 	
 	if isEdgeDeleted then
-		-- nao é do final
+		-- nao Ã© do final
 		for i = positionOfTheEdge, #edgesIn do
 			edgesIn[i] = edgesIn[i+1]
 			edgesIn[i+1] = nil

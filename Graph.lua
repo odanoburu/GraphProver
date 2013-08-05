@@ -4,12 +4,14 @@
 
 	Here is defined the graph estructure.
 
-	Author: Vitor
+        Author: Vitor
+        Extende to rooted Graph (by Hermann)
 
 ]]--
 
 require 'Node'
 require 'Edge'
+
 
 --[[ 
 	Defining the Graph
@@ -29,6 +31,7 @@ function Graph:new ()
 end
 
 -- Private functions
+
 --[[	
 	This function is used only in the Graph module
 	Return true if the label of the newElement do not exist in any of the objects within the listOfObj and false otherwise.
@@ -46,42 +49,76 @@ local function verifyLabel(listOfObj, newElement)
 	return true
 end
 
+--[[	
+	This function is used only in the Graph module
+	Return true if the label ofelement is the label of some member of lisstOfObj and false otherwise.
+	Param:
+		listOfObj: A list of objects that are nodes.
+		element: An object that is a node.
+]]--
+local function membership(element, listOfObj)
+	assert(getmetatable(element) == Node_Metatable, "membership expects a node.")
+	local r = false
+	for i=1, #listOfObj do
+		if listOfObj[i]:getLabel() == element:getLabel() then
+			r = true
+		end
+    end
+	return r
+end
+
 -- Public functions
+--[[ 
+	Sets the root of the Graph
+	Param:
+		A node of the graph.
+        Extention by Hermann
+]]--
+function Graph:setRoot( node )
+	-- Verifica se o vertice raiz j√° existe no grafo (tem que existir) 
+	for i=1, #self.nodes do
+		assert( membership(node, self.nodes), "There is no vertex labeled as \""..node:getLabel().."\" in the graph")
+	end
+	if self.root == nil then
+		self.root = node
+	end
+end
+
 --[[ 
 	Adds a list of nodes in the graph
 	Param:
-		nodes: Uma lista contendo todos os vertices que ser„o adicionados
+	nodes: Uma lista contendo todos os vertices que ser√£o adicionados
 ]]--
 function Graph:addNodes( nodes )
 
-	if self.nodes == nil then
+   if self.nodes == nil then
 		self.nodes = {}
-	end
+   end
 
 	-- Adiciono os vertices na minha lista de vertices
-	posInicial = #self.nodes
-	for i=1, #nodes do
-		assert( getmetatable(nodes[i]) == Node_Metatable , "Graph:addNodes expects a Node")
-		assert( verifyLabel(self.nodes, nodes[i]), "Graph:addNodes: All labels of the nodes must be unique. The label \""..nodes[i]:getLabel().."\" already exists")
-		self.nodes[posInicial + i] = nodes[i]
-	end
-
+   local posInicial = #self.nodes
+   local j=1
+   for i=1, #nodes do
+     assert( getmetatable(nodes[i]) == Node_Metatable , "Graph:addNodes expects a Node")                 
+	 if not membership(nodes[i], self.nodes) then 
+		self.nodes[posInicial + j] = nodes[i]
+        j=j+1
+     end
+   end
 end
 
 --[[ 
 	Add a node in the graph
 	Param:
-		node: O vertice que ser· adicionado
+		node: O vertice que ser√° adicionado
 ]]--
 function Graph:addNode( node )
 
-	assert( getmetatable(node) == Node_Metatable , "Graph:addNode expects a Node") -- Garantir que È um vertice
+	assert( getmetatable(node) == Node_Metatable , "Graph:addNode expects a Node") -- Garantir que √© um vertice
 	
 	if self.nodes == nil then
 		self.nodes = {}
 	end
-	
-	assert( verifyLabel(self.nodes, node), "Graph:addNode: All labels of the nodes must be unique.")
 	
 	self.nodes[#self.nodes+1] = node
 end
@@ -106,7 +143,7 @@ function Graph:getNode(label)
 	end
 	
 	for i=1, #self.nodes do	
-		if self.nodes[i].getLabel() == label then
+		if self.nodes[i]:getLabel() == label then
 			return self.nodes[i]
 		end
 	end
@@ -162,6 +199,7 @@ end
 		edge: An edge
 ]]--
 function Graph:addEdge(edge)
+
 	assert( getmetatable(edge) == Edge_Metatable , "Graph:addEdge expects a edge")
 	
 	if self.edges == nil then
@@ -170,9 +208,11 @@ function Graph:addEdge(edge)
 	self.edges[#self.edges +1] = edge
 end
 
---- Remove an edge from the graph.
--- @param The edge that you want to delete from the graph.
--- @return True if the edge was deleted, False if the edge was not found, so it was not deleted.
+--[[
+	Remove an edge from the graph.
+		@param The edge that you want to delete from the graph.
+		@return True if the edge was deleted, False if the edge was not found, so it was not deleted.
+]]-- 
 function Graph:removeEdge(edge)
 	assert( getmetatable(edge) == Edge_Metatable , "Graph:removeEdge expects a edge")
 	
