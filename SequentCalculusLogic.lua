@@ -306,7 +306,7 @@ local function printFormula(formula)
 		for i, edge in ipairs(formula:getEdgesOut()) do
 			if edge:getLabel() == lblEdgeEsq then
 				subformula = edge:getDestino()
-				ret = ret..printFormula(subformula)
+				ret = ret.."("..printFormula(subformula)
 			end
 		end	
 
@@ -315,7 +315,7 @@ local function printFormula(formula)
 		for i, edge in ipairs(formula:getEdgesOut()) do
 			if edge:getLabel() == lblEdgeDir then
 				subformula = edge:getDestino()
-				ret = ret..printFormula(subformula)
+				ret = ret..printFormula(subformula)..")"
 			end
 		end	
 	else
