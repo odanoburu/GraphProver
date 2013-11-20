@@ -38,6 +38,6 @@ Input formula example
 
 Formulae only support implication (`imp`). Parentheses are required to the right side of every subformula. 
 
-The formula A &rarr; (B &rarr; A) has to be enter as:
+The formula A &rarr; (B &rarr; A) has to be entered as:
 
 `A imp (B imp (A))`
