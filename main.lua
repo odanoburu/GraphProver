@@ -9,6 +9,11 @@
 require 'constants'
 require 'utility'
 require 'SequentCalculusLogic'
+require "logging.file"
+
+-- Inicia controle de estatisticas da aplicacao.
+local logger = logging.file("prover%s.log", "%Y-%m-%d")
+logger:setLevel(logging.INFO)
 
 -- Love initial configuration
 love.graphics.setBackgroundColor(255, 255, 255) -- White Color
@@ -357,8 +362,9 @@ function inputFormula()
 
 		client:send("read"..'\n')
 		local input_formula = client:receive()
-
 		t_formula = stringtotable(input_formula)				
+    
+    logger:info("statistics -- Starting...")    
 	
 		SequentGraph,goalsList = LogicModule.createGraphFromTable(t_formula)
 		prepareGraphToDraw(SequentGraph)
@@ -371,7 +377,7 @@ function printProof()
 	if SequentGraph ~= nil then
 		LogicModule.printProof(SequentGraph)
 		os.execute("pdflatex proof.tex")
-		os.execute("open proof.pdf")		
+		os.execute("xdg-open proof.pdf")		
 	end	
 end
 

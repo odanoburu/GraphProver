@@ -9,13 +9,19 @@
 
 require "SequentGoalsLogic"
 require "ConstantsForSequent"
+require "logging" 
+require "logging.file"
+
+-- Inicia controle de log da aplicacao.
+local logger = logging.file("prover%s.log", "%Y-%m-%d")
+logger:setLevel(logging.INFO)
 
 -- Junta as funções que este modulo oferece como publicas.
 LogicModule = {}
 
 -- Sequente alvo da operação
 local GoalSequentNode = nil
-
+local serializedSequent = ""
 
 -- Private functions
 
@@ -298,6 +304,40 @@ local function markProvedSequents(sequentNode)
 	end
 end
 
+local function countGraphElements(graph) 
+  local countNodeElements = {}
+  local countEdgesElements = {}  
+  
+  nodes = graph:getNodes()
+  
+	for i=1, #nodes do	
+    if countNodeElements[nodes[i]:getInformation("type")] == nil then
+      countNodeElements[nodes[i]:getInformation("type")] = 1
+    else
+      countNodeElements[nodes[i]:getInformation("type")] = countNodeElements[nodes[i]:getInformation("type")] + 1
+    end
+	end
+  
+  edges = graph:getEdges()
+  
+	for i=1, #edges do	
+    if countEdgesElements[edges[i]:getLabel()] == nil then
+      countEdgesElements[edges[i]:getLabel()] = 1
+    else
+      countEdgesElements[edges[i]:getLabel()] = countEdgesElements[edges[i]:getLabel()] + 1
+    end
+	end  
+  
+  for k,count in pairs(countNodeElements) do
+    logger:info("statistics -- Total nodes of type "..k.." is "..count)
+  end
+  
+  for k,count in pairs(countEdgesElements) do
+    logger:info("statistics -- Total nodes of type "..k.." is "..count)
+  end
+  
+end
+
 local function printFormula(formula)
 	local ret = ""
 	local edge, subformula = nil
@@ -371,8 +411,12 @@ local function printSequent(seq, file)
 		
 		file:write(ret)
 		file:write("}")	
+    serializedSequent = serializedSequent..ret.." "  
+    
 		
 		if #deductions > 0 then
+      serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
+      serializedSequent = serializedSequent.."|"
 			file:write("\n{\n")
 		
 			for i, edge in ipairs(deductions) do	
@@ -479,7 +523,8 @@ function LogicModule.expandAll(graph, goalsList)
 	local newGraph = graph		
 	local isAllExpanded = true
 	local ret
-	
+   
+  logger:debug("trace -- Starting ExpandAll...")
 	-- loop em todos os sequentes do grafo. se achar um que nao ta expandido, expande.
 	for k,goal in pairs(goalsList) do
 		local seq = goal:getSequent()
@@ -488,6 +533,8 @@ function LogicModule.expandAll(graph, goalsList)
 
 		if not seq:getInformation("isExpanded") then
 			isAllExpanded = false
+
+      logger:debug("trace -- Expanding sequent "..k)
 
 			local formulaNode = nil			
 			local leftSide = goal:getLeftSide()
@@ -551,6 +598,13 @@ function LogicModule.printProof(graph)
 		local seq = goalEdge[1]:getDestino()
 		printSequent(seq, file)
 	end
+  
+  serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
+  serializedSequent = serializedSequent:gsub("\\to", "→")
+  logger:info("statistics -- Serialized sequent: "..serializedSequent)  
+  logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
+  
+  countGraphElements(graph)
 
 	file:write("\n$$")	
 	file:write("\\end{document}\n")
@@ -684,5 +738,3 @@ function LogicModule.verifySideOfOperator(sequentNode, operatorNode)
 	
 	return nil 
 end
-
-
