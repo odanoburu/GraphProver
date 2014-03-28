@@ -13,7 +13,7 @@ require "logging"
 require "logging.file"
 
 -- Inicia controle de log da aplicacao.
-local logger = logging.file("prover%s.log", "%Y-%m-%d")
+local logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
 logger:setLevel(logging.INFO)
 
 -- Junta as funções que este modulo oferece como publicas.
@@ -586,7 +586,7 @@ end
 function LogicModule.printProof(graph)
    assert( getmetatable(graph) == Graph_Metatable , "printProof expects a graph.")	
    
-   local file = io.open("proof.tex", "w")	
+   local file = io.open("aux/proof.tex", "w")	
    local goalEdge = graph:getNode(lblNodeGG):getEdgesOut()
    
    file:write("\\documentclass[landscape]{article}\n\n")

@@ -13,7 +13,7 @@ require "logging.file"
 require "io" 
 
 -- Inicia controle de estatisticas da aplicacao.
-local logger = logging.file("prover%s.log", "%Y-%m-%d")
+local logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
 logger:setLevel(logging.INFO)
 
 -- Love initial configuration
@@ -377,9 +377,9 @@ end
 function printProof() 
    if SequentGraph ~= nil then
       LogicModule.printProof(SequentGraph)
-      os.execute("pdflatex proof.tex")					
+      os.execute("pdflatex -output-directory=aux aux/proof.tex")					
       --os.execute("xdg-open proof.pdf")
-      os.execute("open proof.pdf")
+      os.execute("open aux/proof.pdf")
    end	
 end
 
