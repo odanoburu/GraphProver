@@ -52,20 +52,20 @@ local function prepareGraphToDraw(graph)
 end
 
 --[[
-Chama a função de criar grafo de um determinado sistema de prova.
+   Chama a função de criar grafo de um determinado sistema de prova.
    Essa funcao tera que ser implementada pelo logicmodule
-Queria criar uma forma de criar uma interface para ser implementada pelo logic module
-Talvez criar uma tabela que seja LogicModule e que ela tenha funcoes a ser implementadas.
+   Queria criar uma forma de criar uma interface para ser implementada pelo logic module
+   Talvez criar uma tabela que seja LogicModule e que ela tenha funcoes a ser implementadas.
    que ai quem quiser criar um novo sistema de prova deve apenas completar os espaços.
-   ]]--
+]]--
 -- Variavel privada
 SequentGraph = LogicModule.createGraphFromTable("empty")
 prepareGraphToDraw(SequentGraph)
 
 --[[
-Dada uma aresta, ele retorna o angulo em radianos que a aresta faz com o eixo horizontal.
+   Dada uma aresta, ele retorna o angulo em radianos que a aresta faz com o eixo horizontal.
    É usada para escrever textos em cima das arestas.
-   ]]--
+]]--
 local function getInclinacaoAresta(edge)
    local inclinacao
    local x2Maiorx1 = false
