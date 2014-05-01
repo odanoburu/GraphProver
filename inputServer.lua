@@ -1,3 +1,12 @@
+--[[
+
+   Server for data input.
+
+   Author: Hermann
+   Contributor: Jefferson
+
+]]--
+
 require "luarocks.loader"
 
 require"parse_input"

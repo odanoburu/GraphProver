@@ -64,58 +64,58 @@ end
    Param:
    infoName: A string or a number containing the name of the field of the desired information.
 ]]--
-   function Edge:getInformation(infoName)
+function Edge:getInformation(infoName)
    return self.info[infoName]
-   end
+end
 
-   --[[
+--[[
    Return the origin node of the edge
 ]]--
-   function Edge:getOrigem()
+function Edge:getOrigem()
    return self.origem
-   end
+end
 
-   --[[
+--[[
    Define the origin node of the edge
 ]]--
-   function Edge:setOrigem(node)
+function Edge:setOrigem(node)
    assert( getmetatable(node) == Node_Metatable , "Edge:setOrigem expects a Node.") -- Garantir que é um vertice
    
    self.origem = node
-   end
+end
 
-   --[[
+--[[
    Return the destination node of the edge
 ]]--
-   function Edge:getDestino()
+function Edge:getDestino()
    return self.destino
-   end
+end
 
-   --[[
+--[[
    Define the destination node of the edge
 ]]--
-   function Edge:setDestino(node)
+function Edge:setDestino(node)
    assert( getmetatable(node) == Node_Metatable , "Edge:setDestino expects a Node.") -- Garantir que é um vertice
    self.destino = node
-   end
+end
 
-   --[[
+--[[
    Define the origin node and the destination node of the edge
    Param:
    origin: A node that is the origin of the edge
    destination: A node that is the destination of the edge 
 ]]--
-   function Edge:setConections(origin, destination)
+function Edge:setConections(origin, destination)
    assert( getmetatable(origin) == Node_Metatable , "Edge:setConections expects a Node, origin is not a node.") -- Garantir que é um vertice
    assert( getmetatable(destination) == Node_Metatable , "Edge:setConections expects a Node, destination is not a node.") -- Garantir que é um vertice
    self.origem = origin
    self.destino = destination
-   end
+end
 
-   --[[
+--[[
    Return two nodes: the origin and the destination of the edge
 ]]--
-   function Edge:getConections()
+function Edge:getConections()
    return self.origem, self.destino
-   end
+end
 

@@ -1,10 +1,12 @@
 --[[
 
-	Constants Module
-	
-	Contains all the constants used by the grafic module.
+   Constants Module
+   
+   Contains all the constants used by the grafic module.
 
-	Author: Vitor
+   Author: Vitor
+   Contributor: Jefferson
+   
 
 ]]--
 

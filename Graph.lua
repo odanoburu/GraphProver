@@ -5,7 +5,7 @@
    Here is defined the graph estructure.
 
    Author: Vitor
-   Extende to rooted Graph (by Hermann)
+   Contributor: Hermann
 
 ]]--
 

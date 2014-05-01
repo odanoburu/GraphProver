@@ -3,7 +3,7 @@
    Node Module
 
    Author: Vitor
-   update/rev : Hermann (Dez/2012)
+   Contributor : Hermann
 
 ]]--
 

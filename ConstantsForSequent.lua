@@ -5,6 +5,7 @@
    Contains all the constants used by the Sequent Calculus Logic Module.
 
    Author: Vitor
+   Contributors :Jefferson
 
 ]]--
 
@@ -51,6 +52,7 @@ lblEdgeContext = "Context"
 lblNodeGG = "GG"
 lblNodeEsq = "e"
 lblNodeDir = "d"
+lblNodeBrackets = "[]"
 
 lblCarnality = "log_"
 lblUnary = "u"

@@ -1,3 +1,14 @@
+--[[
+
+   Parse Input Module
+
+   Utilitary module to parse formula input.
+
+   Author: Vitor
+   Contributor: Hermann
+
+]]--
+
 local lpeg = require "lpeg"
 
 local function table_atom(x)

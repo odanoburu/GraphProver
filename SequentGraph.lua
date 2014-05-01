@@ -6,6 +6,7 @@
    Here is defined the node estructure of the Sequent Graph.
 
    Author: Vitor
+   Contributors: Hermann, Jefferson
 
 ]]--
 
@@ -21,6 +22,7 @@ implyNodeCount = 0
 sequentNodeCount = 0 -- o label esquerda("esq") e direita("dir") do sequente vai ser o mesmo contador
 esqNodeCount = 0
 dirNodeCount = 0
+bracketNodeCount = 0
 
 --[[ 
    Defining the SequentNode, extends Node
@@ -52,6 +54,9 @@ function SequentNode:new(labelNode) -- testar esse override
    elseif labelNode == lblNodeDir then		
       labelNode = labelNode .. dirNodeCount
       dirNodeCount = dirNodeCount + 1
+   elseif labelNode == lblNodeBrackets then		
+      labelNode = labelNode .. bracketNodeCount
+      bracketNodeCount = bracketNodeCount + 1
    end
    
    local newNode = Node:new(labelNode)

@@ -2,7 +2,8 @@
 
    Main Module
 
-   Author: Vitor, extended by Hermann
+   Author: Vitor, 
+   Contributors: Marcela, Hermann, Jefferson
 
 ]]--
 

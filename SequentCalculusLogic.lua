@@ -76,14 +76,6 @@ end
 
 local function createGraphImplyLeft()
    
-   -- Lendo de um arquivo/teste com Love
-
-   -- local contents = io.read()
-   
-   -- print(contents)
-
-   -- Fim teste
-
    local SequentGraph = Graph:new ()
    
    NodeGG = SequentNode:new(lblNodeGG)
@@ -193,8 +185,8 @@ local function createGraphSequent(seq_tabela, letters)
    local NodeGG = SequentNode:new(lblNodeGG)
    local NodeSeq = SequentNode:new(opSeq.graph)
    local NodeEsq = SequentNode:new(lblNodeEsq)
-
    local NodeDir = SequentNode:new(lblNodeDir)
+   local NodeBrackets = SequentNode:new(lblNodeBrackets)
    S,L = createGraphFormula(seq_tabela, letters)
 
    createDebugMessage("RootNode ="..S.root:getLabel())
@@ -202,12 +194,13 @@ local function createGraphSequent(seq_tabela, letters)
    local Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
    local Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
    local Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
-   local Edge5 = SequentEdge:new('', NodeDir, S.root)
+   local Edge4 = SequentEdge:new('', NodeDir, S.root)
+   local Edge5 = SequentEdge:new('', NodeDir, NodeBrackets)
 
-   local nodes = {NodeGG, NodeSeq, NodeDir, NodeEsq}
+   local nodes = {NodeGG, NodeSeq, NodeDir, NodeEsq, NodeBrackets}
    SequentGraph:addNodes(nodes)
    SequentGraph:addNodes(S.nodes)
-   local edges = {Edge1, Edge2, Edge3, Edge5}	
+   local edges = {Edge1, Edge2, Edge3, Edge4, Edge5}	
    SequentGraph:addEdges(edges)
    SequentGraph:addEdges(S.edges)
 
@@ -344,21 +337,30 @@ local function printFormula(formula)
    local edge, subformula = nil
 
    if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
-      for i, edge in ipairs(formula:getEdgesOut()) do
-	 if edge:getLabel() == lblEdgeEsq then
+      if formula:getLabel():sub(1,2) == lblNodeBrackets then
+	 ret = ret.."["
+	 for i, edge in ipairs(formula:getEdgesOut()) do
 	    subformula = edge:getDestino()
-	    ret = ret.."("..printFormula(subformula)
+	    ret = ret.."("..printFormula(subformula)..")"
 	 end
-      end	
+	 ret = ret.."]"
+      else
+	 for i, edge in ipairs(formula:getEdgesOut()) do
+	    if edge:getLabel() == lblEdgeEsq then
+	       subformula = edge:getDestino()
+	       ret = ret.."("..printFormula(subformula)
+	    end
+	 end	
 
-      ret = ret.." "..opImp.tex.." "
+	 ret = ret.." "..opImp.tex.." "
 
-      for i, edge in ipairs(formula:getEdgesOut()) do
-	 if edge:getLabel() == lblEdgeDir then
-	    subformula = edge:getDestino()
-	    ret = ret..printFormula(subformula)..")"
-	 end
-      end	
+	 for i, edge in ipairs(formula:getEdgesOut()) do
+	    if edge:getLabel() == lblEdgeDir then
+	       subformula = edge:getDestino()
+	       ret = ret..printFormula(subformula)..")"
+	    end
+	 end	
+      end
    else
       ret = formula:getLabel()
    end
@@ -479,7 +481,7 @@ end
 
 --[[
    Expand a operator in a sequent.
-   For a especific graph and a node of that graph, this functions expands the node if that node is an operator.
+   For a specific graph and a node of that graph, it expands the node if that node is an operator.
    The operator node is only expanded if a sequent node were previusly selected.
 
    @param graph The graph that contains the target node.
@@ -632,34 +634,67 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
 
    -- Updating left (1) premiss of impLeft application 
    --  First step: Deleting the expanded formula (nodeOpImp) from left side 
-
    local numberEdgesRight = #nodeRight1:getEdgesOut()
-   local labelEdgeNewFormula = numberEdgesRight
 
    local listEdgesOut = nodeLeft1:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
-	 graph:removeEdge(listEdgesOut[i]) -- remove a aresta que liga a direita com a implicacao objeto da regra ImpRight
+	 graph:removeEdge(listEdgesOut[i])
 	 break
       end
    end
-   -- Second step: updating the right side of the sequent as the antecedent of the nodeOpImp formula
-   local newEdgeDir = SequentEdge:new(""..labelEdgeNewFormula, nodeRight1, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())   
+
+   --Second step: 
+
+   -- Remove formula being expanded from left side of the sequent
+  local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino() 
+  graph:removeEdge(nodeRight1:getEdgeOut("0"))
+
+   -- Create a new bracket with original bracket formulas including the formula outside the original bracket
+   local oldNodeBrackets = nodeRight1:getEdgeOut("1"):getDestino()
+   local newNodeBrackets = SequentNode:new(lblNodeBrackets)
+   local numberFormulasInBrackets = #oldNodeBrackets:getEdgesOut()
+   graph:addNode(newNodeBrackets)
+
+   local copiedEdgeInsideBrackets = nil
+   local listEdgesOut = oldNodeBrackets:getEdgesOut()
+   for i=1, #listEdgesOut do
+      copiedEdgeInsideBrackets = SequentEdge:new(""..i, newNodeBrackets, listEdgesOut[i]:getDestino())
+      graph:addEdge(copiedEdgeInsideBrackets)
+   end
+   
+   local newEdgeInsideBrackets = SequentEdge:new(""..numberFormulasInBrackets, newNodeBrackets, nodeFormulaOutsideBrackets)
+   graph:addEdge(newEdgeInsideBrackets)
+
+   graph:removeEdge(nodeRight1:getEdgeOut("1"))
+   local newBracketsEdge = SequentEdge:new("1", nodeRight1, newNodeBrackets)
+   graph:addEdge(newBracketsEdge)
+
+
+   -- Third step: updating the right side of the sequent as the antecedent of the nodeOpImp formula
+   local newEdgeDir = SequentEdge:new("0", nodeRight1, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())   
    graph:addEdge(newEdgeDir)
    -- End of updating left (1) premiss
 
    -- Updating right (2) premiss of impLeft application
-   -- Only one step: updating the left side of the sequent (premiss 2)  
+   -- First step: updating the left side of the sequent (premiss 2)  
    local listEdgesOut = nodeLeft2:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
 	 local labelEdgeRemoved = listEdgesOut[i]:getLabel()
-	 graph:removeEdge(listEdgesOut[i]) -- remove a aresta que liga a direita com a implicacao objeto da regra ImpRight
+	 graph:removeEdge(listEdgesOut[i])
 	 break
       end
    end
+
+   -- Second step:
    local newEdgeLeft = SequentEdge:new(labelEdgeRemoved, nodeLeft2, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino()) 
-   graph:addEdge(newEdgeLeft)   
+   graph:addEdge(newEdgeLeft)
+
+   -- Third step: 
+   local edgeToBrackets = nodeRight2:getEdgeOut("1")
+   graph:removeEdge(edgeToBrackets)
+ 
    -- End of updating right (2) premiss
 
    goalsList[NewSequentNode1:getLabel()] = GoalsLogic.assembleGoalList(NewSequentNode1)
@@ -683,15 +718,14 @@ function LogicModule.expandNodeImpRight(graph, sequentNode, nodeOpImp)
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
 	 labelEdgeRemoved = listEdgesOut[i]:getLabel()
-	 graph:removeEdge(listEdgesOut[i]) -- remove a aresta que liga a direita com a implicacao objeto da regra ImpRight
+	 graph:removeEdge(listEdgesOut[i])
 	 break
       end
    end
    local newEdge2 = SequentEdge:new(labelEdgeRemoved, nodeRight, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino())
 
    local numberEdgesLeft = #nodeLeft:getEdgesOut()
-   local labelEdgeNewFormula = numberEdgesLeft
-   local newEdge3 = SequentEdge:new(""..labelEdgeNewFormula, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())
+   local newEdge3 = SequentEdge:new(""..numberEdgesLeft, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())
 
    graph:addEdge(newEdge2)
    graph:addEdge(newEdge3)        
@@ -709,6 +743,7 @@ end
    Return "Right" if the operatorNode is in the right side of the sequentNode
    Return nil if the operatorNode is not part of the sequentNode
 ]]--
+
 function LogicModule.verifySideOfOperator(sequentNode, operatorNode)
    assert( operatorNode ~= nil , "verifySideOfOperator must be called only if operatorNode is not null.")
    assert( getmetatable(operatorNode) == Node_Metatable , "verifySideOfOperator operatorNode must be a Node")
