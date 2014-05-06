@@ -336,33 +336,42 @@ local function printFormula(formula)
    local ret = ""
    local edge, subformula = nil
 
-   if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
-      if formula:getLabel():sub(1,2) == lblNodeBrackets then
-	 ret = ret.."["
-	 for i, edge in ipairs(formula:getEdgesOut()) do
-	    subformula = edge:getDestino()
-	    ret = ret.."("..printFormula(subformula)..")"
-	 end
-	 ret = ret.."]"
-      else
-	 for i, edge in ipairs(formula:getEdgesOut()) do
-	    if edge:getLabel() == lblEdgeEsq then
-	       subformula = edge:getDestino()
-	       ret = ret.."("..printFormula(subformula)
-	    end
-	 end	
-
-	 ret = ret.." "..opImp.tex.." "
-
-	 for i, edge in ipairs(formula:getEdgesOut()) do
-	    if edge:getLabel() == lblEdgeDir then
-	       subformula = edge:getDestino()
-	       ret = ret..printFormula(subformula)..")"
-	    end
-	 end	
+   if formula:getLabel():sub(1,2) == lblNodeBrackets then
+      ret = ret.."["
+      for i, edge in ipairs(formula:getEdgesOut()) do
+	 subformula = edge:getDestino()
+	 ret = ret.."("..printFormula(subformula)..")"
       end
+      ret = ret.."]"
    else
-      ret = formula:getLabel()
+      if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
+	 if formula:getLabel():sub(1,2) == lblNodeBrackets then
+	    ret = ret.."["
+	    for i, edge in ipairs(formula:getEdgesOut()) do
+	       subformula = edge:getDestino()
+	       ret = ret..printFormula(subformula)
+	    end
+	    ret = ret.."]"
+	 else
+	    for i, edge in ipairs(formula:getEdgesOut()) do
+	       if edge:getLabel() == lblEdgeEsq then
+		  subformula = edge:getDestino()
+		  ret = ret.."("..printFormula(subformula)
+	       end
+	    end	
+
+	    ret = ret.." "..opImp.tex.." "
+
+	    for i, edge in ipairs(formula:getEdgesOut()) do
+	       if edge:getLabel() == lblEdgeDir then
+		  subformula = edge:getDestino()
+		  ret = ret..printFormula(subformula)..")"
+	       end
+	    end	
+	 end
+      else
+	 ret = formula:getLabel()
+      end
    end
 
    return ret
@@ -651,22 +660,26 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
   graph:removeEdge(nodeRight1:getEdgeOut("0"))
 
    -- Create a new bracket with original bracket formulas including the formula outside the original bracket
-   local oldNodeBrackets = nodeRight1:getEdgeOut("1"):getDestino()
-   local newNodeBrackets = SequentNode:new(lblNodeBrackets)
-   local numberFormulasInBrackets = #oldNodeBrackets:getEdgesOut()
-   graph:addNode(newNodeBrackets)
+  local newNodeBrackets = SequentNode:new(lblNodeBrackets)
+  graph:addNode(newNodeBrackets)
 
-   local copiedEdgeInsideBrackets = nil
-   local listEdgesOut = oldNodeBrackets:getEdgesOut()
-   for i=1, #listEdgesOut do
-      copiedEdgeInsideBrackets = SequentEdge:new(""..i, newNodeBrackets, listEdgesOut[i]:getDestino())
-      graph:addEdge(copiedEdgeInsideBrackets)
-   end
+  local numberFormulasInBrackets = 0  
+  if nodeRight1:getEdgeOut("1") ~= nil then
+     local oldNodeBrackets = nodeRight1:getEdgeOut("1"):getDestino()
+     local copiedEdgeInsideBrackets = nil
+     local listEdgesOut = oldNodeBrackets:getEdgesOut()
+
+     for i=1, #listEdgesOut do
+	copiedEdgeInsideBrackets = SequentEdge:new(""..i, newNodeBrackets, listEdgesOut[i]:getDestino())
+	graph:addEdge(copiedEdgeInsideBrackets)
+     end
+     numberFormulasInBrackets = #oldNodeBrackets:getEdgesOut()
+     graph:removeEdge(nodeRight1:getEdgeOut("1"))
+  end
    
    local newEdgeInsideBrackets = SequentEdge:new(""..numberFormulasInBrackets, newNodeBrackets, nodeFormulaOutsideBrackets)
    graph:addEdge(newEdgeInsideBrackets)
 
-   graph:removeEdge(nodeRight1:getEdgeOut("1"))
    local newBracketsEdge = SequentEdge:new("1", nodeRight1, newNodeBrackets)
    graph:addEdge(newBracketsEdge)
 
@@ -692,13 +705,15 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
    graph:addEdge(newEdgeLeft)
 
    -- Third step: 
-   local edgeToBrackets = nodeRight2:getEdgeOut("1")
-   graph:removeEdge(edgeToBrackets)
- 
+   --if nodeRight2:getEdgeOut("1") ~= nil then
+   --   local edgeToBrackets = nodeRight2:getEdgeOut("1")
+   --   graph:removeEdge(edgeToBrackets)
+   --end 
    -- End of updating right (2) premiss
 
    goalsList[NewSequentNode1:getLabel()] = GoalsLogic.assembleGoalList(NewSequentNode1)
    goalsList[NewSequentNode2:getLabel()] = GoalsLogic.assembleGoalList(NewSequentNode2)
+
 
    return graph, goalsList	
 end
