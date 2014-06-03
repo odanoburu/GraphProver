@@ -210,9 +210,10 @@ end
 
 local function expandNodeAtomic(graph, sequentNode, node)
    local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
-   local edgesRight = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgesOut()
-   local side =" "
-   local isAxiom= false
+   local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
+   local formulasInBracketNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino():getEdgesOut()
+   local side = " "
+   local isAxiom = false
 
    for i=1, #edgesLeft do
       if edgesLeft[i]:getDestino():getLabel() == node:getLabel() then
@@ -221,10 +222,14 @@ local function expandNodeAtomic(graph, sequentNode, node)
       end
    end 
    if side == "Left" then 
-      for i=1,#edgesRight do
-	 if edgesRight[i]:getDestino():getLabel() == node:getLabel() then 
-	    isAxiom = true
-	    break
+      if rightFormulaNode:getLabel() == node:getLabel() then 
+	 isAxiom = true
+      else
+	 for i=1, #formulasInBracketNode do
+	    if formulasInBracketNode[i]:getDestino():getLabel() == node:getLabel() then
+	       isAxiom = true
+	       break
+	    end
 	 end
       end
    end 
@@ -269,31 +274,32 @@ local function verifySideOfSequent(originNode, targetNode)
    return false
 end
 
-local function markProvedSequents(sequentNode)
-   assert( getmetatable(sequentNode) == Node_Metatable , "markProvedSequents expects a node.")
+local function markProvedSequent(sequentNode)
+   assert( getmetatable(sequentNode) == Node_Metatable , "markProvedSequent expects a node.")
 
-   local contDed = 0
+   local allBrachesProved = false
 
    if sequentNode:getInformation("isAxiom") == nil then
       local deductions = sequentNode:getEdgesOut()
 
       for i=1, #deductions do
 	 if deductions[i]:getLabel() == lblEdgeDeducao then
-	    contDed = contDed+1
-	    if markProvedSequents(deductions[i]:getDestino()) == false then
-	       return false
+	    if markProvedSequent(deductions[i]:getDestino()) == false then
+	       allBrachesProved = false
+	    else
+	       allBrachesProved = true
 	    end
 	 end
       end	
    else
-      contDed = 1
+      allBrachesProved = true
    end
 
-
-   if contDed > 0 then
+   if allBrachesProved then
       sequentNode:setInformation("isProved", true)
       return true
    else
+      sequentNode:setInformation("isProved", false)
       return false
    end
 end
@@ -336,41 +342,36 @@ local function printFormula(formula)
    local ret = ""
    local edge, subformula = nil
 
-   if formula:getLabel():sub(1,2) == lblNodeBrackets then
-      ret = ret.."["
-      for i, edge in ipairs(formula:getEdgesOut()) do
-	 subformula = edge:getDestino()
-	 ret = ret.."("..printFormula(subformula)..")"
-      end
-      ret = ret.."]"
-   else
-      if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
-	 if formula:getLabel():sub(1,2) == lblNodeBrackets then
-	    ret = ret.."["
-	    for i, edge in ipairs(formula:getEdgesOut()) do
-	       subformula = edge:getDestino()
-	       ret = ret..printFormula(subformula)
-	    end
-	    ret = ret.."]"
-	 else
-	    for i, edge in ipairs(formula:getEdgesOut()) do
-	       if edge:getLabel() == lblEdgeEsq then
-		  subformula = edge:getDestino()
-		  ret = ret.."("..printFormula(subformula)
-	       end
-	    end	
-
-	    ret = ret.." "..opImp.tex.." "
-
-	    for i, edge in ipairs(formula:getEdgesOut()) do
-	       if edge:getLabel() == lblEdgeDir then
-		  subformula = edge:getDestino()
-		  ret = ret..printFormula(subformula)..")"
-	       end
-	    end	
+   if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
+      if formula:getLabel():sub(1,2) == lblNodeBrackets then
+	 ret = ret.."["
+	 for i, edge in ipairs(formula:getEdgesOut()) do
+	    subformula = edge:getDestino()
+	    ret = ret..printFormula(subformula)..","
 	 end
+	 ret = ret:sub(1, ret:len()-1)
+	 ret = ret.."]"
       else
-	 ret = formula:getLabel()
+	 for i, edge in ipairs(formula:getEdgesOut()) do
+	    if edge:getLabel() == lblEdgeEsq then
+	       subformula = edge:getDestino()
+	       ret = ret.."("..printFormula(subformula)
+	    end
+	 end	
+
+	 ret = ret.." "..opImp.tex.." "
+
+	 for i, edge in ipairs(formula:getEdgesOut()) do
+	    if edge:getLabel() == lblEdgeDir then
+	       subformula = edge:getDestino()
+	       ret = ret..printFormula(subformula)..")"
+	    end
+	 end	
+      end
+   else
+      ret = formula:getLabel()
+      if formula:getLabel():sub(1,2) == lblNodeBrackets then
+	 ret = ret:sub(1, ret:len()-1)
       end
    end
 
@@ -553,24 +554,24 @@ function LogicModule.expandAll(graph, goalsList)
 	 local rightSide = goal:getRightSide()
 
 	 -- TODO Extract a method for the commom code below.
-	 if #leftSide ~= 0 then
-	    for k,formulaNode in pairs(leftSide) do 
+	 if #rightSide ~= 0 then
+	    for k,formulaNode in pairs(rightSide) do 
 	       ret, newGraph = LogicModule.expandNode(graph, seq, formulaNode)
 	       if ret then break end
+	    end					
+	    if #leftSide ~= 0 then
+	       for k,formulaNode in pairs(leftSide) do 
+		  ret, newGraph = LogicModule.expandNode(graph, seq, formulaNode)
+		  if ret then break end
+	       end
 	    end
-	    if #rightSide ~= 0 then
-	       for k,formulaNode in pairs(rightSide) do 
-		  ret, newGraph = LogicModule.expandNode(graph, seq, formulaNode)
-		  if ret then break end
-	       end
-	    end 					
 	 else
-	    if #rightSide ~= 0 then
-	       for k,formulaNode in pairs(rightSide) do 
+	    if #leftSide ~= 0 then
+	       for k,formulaNode in pairs(leftSide) do 
 		  ret, newGraph = LogicModule.expandNode(graph, seq, formulaNode)
 		  if ret then break end
 	       end
-	    end 						
+	    end 	
 	 end
 
 	 seq:setInformation("isExpanded", true)
@@ -585,7 +586,7 @@ function LogicModule.expandAll(graph, goalsList)
 
       if initialSequents ~= nil then
 	 for i=1, #initialSequents do
-	    markProvedSequents(initialSequents[i]:getDestino())
+	    markProvedSequent(initialSequents[i]:getDestino())
 	 end
       end
    end
@@ -659,7 +660,7 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
   local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino() 
   graph:removeEdge(nodeRight1:getEdgeOut("0"))
 
-   -- Create a new bracket with original bracket formulas including the formula outside the original bracket
+   -- Create a new formulasInBracketNode with original formulasInBracketNode formulas including the formula outside the original formulasInBracketNode
   local newNodeBrackets = SequentNode:new(lblNodeBrackets)
   graph:addNode(newNodeBrackets)
 
@@ -785,6 +786,6 @@ function LogicModule.verifySideOfOperator(sequentNode, operatorNode)
 	 end
       end		
    end
-
+   
    return nil 
 end

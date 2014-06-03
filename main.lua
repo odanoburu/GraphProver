@@ -202,11 +202,13 @@ local function drawGraphEvent(graph)
       while i <= #nodes do
 	 
 	 local node = nodes[i]
-	 if node:getInformation("isProved") then 
+	 if node:getInformation("isProved") == nil then 
+	    love.graphics.setColor(204, 204, 204) -- Gray circle
+	 elseif node:getInformation("isProved") == false then 
+	    love.graphics.setColor(255, 0, 0) -- Red circle
+	 elseif node:getInformation("isProved") == true then 
 	    love.graphics.setColor(0, 255, 0) -- Green circle
-	 else 
-	    love.graphics.setColor(204, 204, 204) -- Gray circle	
-	 end				
+	 end					
 	 
 	 love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
 	 love.graphics.setColor(0, 0, 0, 99) -- Black 99%
