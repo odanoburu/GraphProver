@@ -28,12 +28,7 @@ local serializedSequent = ""
 --[[
    Cria um sequente novo para poder fazer uma dedução
    Cria um SeqX + um nó eX + um nó dX e aponta o eX e o dX para os mesmo lugares que o sequente dado como parametro sequentNode apontava.
-   Alteracao em 3/1/2013 (Hermann): A funcao retorna o novo no do tipo sequente criado e a lista de nos e de arestas associadas a ele, 
-   tambem criadas pela funcao. Anteriormente a funcao adicionava estas listas ao grafo, sem retornar valor explicito. 
-   A funcao atuava via efeito colateral em graph. Atualmente nao hah mais necessidade de passar "graph" como parametro (depois vai ser retirado !!!) 
-   Obs IMPORTANTE:  Esta versao aproveita os nos existentes em sequentNode sem criar novos recursos (formulas)
 ]]--
-
 local function createNewSequent(graph, sequentNode)
    --  Nomes sequentNode e SequentNode sao pessimos, trocar depois (Hermann)
    local copiedSequent = nil
@@ -234,6 +229,10 @@ local function expandNodeAtomic(graph, sequentNode, node)
       end
    end 
    if isAxiom then
+      --local counterModel = sequentNode:setInformation("counterModel")
+      --counterModel = generateCounterModel(sequentNode, counterModel)
+  
+      --sequentNode:setInformation("counterModel", counterModel)
       sequentNode:setInformation("isAxiom", true)
       return true, graph 
    else 
@@ -272,6 +271,33 @@ local function verifySideOfSequent(originNode, targetNode)
    end
 
    return false
+end
+
+local function generateCounterModel(sequentNode, counterModel)
+
+   if counterModel == nil then
+      -- iniciar table
+   end 
+
+   local nodeLeft = sequentNode:getEdgeOut(lblEdgeLeft):getDestino()
+   local nodeRight = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
+   
+   local listEdgesOut = nodeLeft:getEdgesOut()
+   for i=1, #listEdgesOut do
+      -- estende table (satisfaz) com listEdgesOut[i]:getDestino():getLabel()
+   end
+
+   local outsideBrackets = nodeRight:getEdgeOut("0"):getDestino()
+   -- estende table (não satisfaz) com outsideBrackets:getLabel()
+
+   local nodeBrackets = nodeRight:getEdgeOut("1"):getDestino()  
+   local listEdgesOut = nodeBrackets:getEdgesOut()
+   for i=1, #listEdgesOut do
+      -- estende table (não satisfaz) com listEdgesOut[i]:getDestino():getLabel()
+   end
+   
+   return counterModel
+
 end
 
 local function markProvedSequent(sequentNode)
@@ -448,6 +474,7 @@ end
    Funcao definida em 31-12-2012 para auxiliar no processo de debug
 ]]--  
 local function printGoals(pos, goalsList)
+   
    local seq,goal, sgoals
 
    for seq,goal in pairs(goalsList) do 		
@@ -642,10 +669,9 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
    graph:addEdge(newEdge1)
    graph:addEdge(newEdge2)
 
-   -- Updating left (1) premiss of impLeft application 
+   -- Updating left (1) premiss of impLeft application
+   
    --  First step: Deleting the expanded formula (nodeOpImp) from left side 
-   local numberEdgesRight = #nodeRight1:getEdgesOut()
-
    local listEdgesOut = nodeLeft1:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
@@ -657,26 +683,26 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
    --Second step: 
 
    -- Remove formula being expanded from left side of the sequent
-  local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino() 
-  graph:removeEdge(nodeRight1:getEdgeOut("0"))
+   local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino() 
+   graph:removeEdge(nodeRight1:getEdgeOut("0"))
 
    -- Create a new formulasInBracketNode with original formulasInBracketNode formulas including the formula outside the original formulasInBracketNode
-  local newNodeBrackets = SequentNode:new(lblNodeBrackets)
-  graph:addNode(newNodeBrackets)
+   local newNodeBrackets = SequentNode:new(lblNodeBrackets)
+   graph:addNode(newNodeBrackets)
 
-  local numberFormulasInBrackets = 0  
-  if nodeRight1:getEdgeOut("1") ~= nil then
-     local oldNodeBrackets = nodeRight1:getEdgeOut("1"):getDestino()
-     local copiedEdgeInsideBrackets = nil
-     local listEdgesOut = oldNodeBrackets:getEdgesOut()
-
-     for i=1, #listEdgesOut do
-	copiedEdgeInsideBrackets = SequentEdge:new(""..i, newNodeBrackets, listEdgesOut[i]:getDestino())
-	graph:addEdge(copiedEdgeInsideBrackets)
-     end
-     numberFormulasInBrackets = #oldNodeBrackets:getEdgesOut()
-     graph:removeEdge(nodeRight1:getEdgeOut("1"))
-  end
+   local numberFormulasInBrackets = 0  
+   if nodeRight1:getEdgeOut("1") ~= nil then
+      local oldNodeBrackets = nodeRight1:getEdgeOut("1"):getDestino()
+      local copiedEdgeInsideBrackets = nil
+      
+      local listEdgesOut = oldNodeBrackets:getEdgesOut()
+      for i=1, #listEdgesOut do
+	 copiedEdgeInsideBrackets = SequentEdge:new(""..i, newNodeBrackets, listEdgesOut[i]:getDestino())
+	 graph:addEdge(copiedEdgeInsideBrackets)
+      end
+      numberFormulasInBrackets = #oldNodeBrackets:getEdgesOut()
+      graph:removeEdge(nodeRight1:getEdgeOut("1"))
+   end
    
    local newEdgeInsideBrackets = SequentEdge:new(""..numberFormulasInBrackets, newNodeBrackets, nodeFormulaOutsideBrackets)
    graph:addEdge(newEdgeInsideBrackets)
@@ -691,6 +717,7 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
    -- End of updating left (1) premiss
 
    -- Updating right (2) premiss of impLeft application
+
    -- First step: updating the left side of the sequent (premiss 2)  
    local listEdgesOut = nodeLeft2:getEdgesOut()
    for i=1, #listEdgesOut do
@@ -705,16 +732,10 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
    local newEdgeLeft = SequentEdge:new(labelEdgeRemoved, nodeLeft2, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino()) 
    graph:addEdge(newEdgeLeft)
 
-   -- Third step: 
-   --if nodeRight2:getEdgeOut("1") ~= nil then
-   --   local edgeToBrackets = nodeRight2:getEdgeOut("1")
-   --   graph:removeEdge(edgeToBrackets)
-   --end 
    -- End of updating right (2) premiss
 
    goalsList[NewSequentNode1:getLabel()] = GoalsLogic.assembleGoalList(NewSequentNode1)
    goalsList[NewSequentNode2:getLabel()] = GoalsLogic.assembleGoalList(NewSequentNode2)
-
 
    return graph, goalsList	
 end

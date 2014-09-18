@@ -13,55 +13,13 @@ require 'SequentCalculusLogic'
 require "logging.file"
 require "io" 
 
--- Inicia controle de estatisticas da aplicacao.
-local logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
-logger:setLevel(logging.INFO)
+-- Variáveis globais do modulo
+local logger, font, SequentGraph
+local isDragging, isChoosingFocus, isExpandingFormula
 
--- Love initial configuration
-love.graphics.setBackgroundColor(255, 255, 255) -- White Color
-love.graphics.setColor(0, 0, 0) -- Black Color
-font = love.graphics.newFont(11)
-isDragging = false
-isChoosingFocus = false
-isExpandingFormula = false
+local FPSCAP = 60
 
 -- Private functions
---[[
-   Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
-]]--
-local function prepareGraphToDraw(graph)
-   
-   nodes = graph:getNodes()
-   
-   posX = xBegin
-   posY = yBegin
-   
-   if nodes ~= nil then
-      for  i = 1, #nodes do		
-	 if nodes[i]:getPosition() == nil then -- só atualiza os nós que nao tem posicao.			
-	    nodes[i]:setPosition(posX,posY)
-	    if i % 2 == 0 then
-	       posX = posX + 10
-	    else
-	       posY = posY + 10
-	    end
-	 end
-      end
-   end
-
-   return graph
-end
-
---[[
-   Chama a função de criar grafo de um determinado sistema de prova.
-   Essa funcao tera que ser implementada pelo logicmodule
-   Queria criar uma forma de criar uma interface para ser implementada pelo logic module
-   Talvez criar uma tabela que seja LogicModule e que ela tenha funcoes a ser implementadas.
-   que ai quem quiser criar um novo sistema de prova deve apenas completar os espaços.
-]]--
--- Variavel privada
-SequentGraph = LogicModule.createGraphFromTable("empty")
-prepareGraphToDraw(SequentGraph)
 
 --[[
    Dada uma aresta, ele retorna o angulo em radianos que a aresta faz com o eixo horizontal.
@@ -123,7 +81,7 @@ end
 
 --[[
 Um algoritmo massa-mola + carca eletrica aplicado ao grafo.
-   ]]--
+]]--
 local function applyForces(graph)
 
    local nodes = graph:getNodes()
@@ -187,8 +145,34 @@ local function applyForces(graph)
 end
 
 --[[
+   Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
+]]--
+local function prepareGraphToDraw(graph)
+   
+   nodes = graph:getNodes()
+   
+   posX = xBegin
+   posY = yBegin
+   
+   if nodes ~= nil then
+      for  i = 1, #nodes do		
+	 if nodes[i]:getPosition() == nil then -- só atualiza os nós que nao tem posicao.			
+	    nodes[i]:setPosition(posX,posY)
+	    if i % 2 == 0 then
+	       posX = posX + 10
+	    else
+	       posY = posY + 10
+	    end
+	 end
+      end
+   end
+
+   return graph
+end
+
+--[[
 Receive a graph and draws it on the screen.
-   ]]--
+]]--
 local function drawGraphEvent(graph)
    local i = 1
    
@@ -236,13 +220,15 @@ local function drawGraphEvent(graph)
 	 i = i + 1
       end
    end
-   
-   applyForces(SequentGraph)
+
+   applyForces(graph)
 end
+
 
 --[[
 Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
-   ]]--
+]]--
+
 local function getNodeClicked()	
    -- Varrer todo o grafo procurando o vertice que pode ter sido clicado.
    nodes = SequentGraph:getNodes()	
@@ -317,7 +303,7 @@ local function dragNodeOrScreenOrSelectFocusEvent()
       -- Usuario arrastando um vertice	
    elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
       nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
-      applyForces(SequentGraph)
+      --applyForces(SequentGraph)
       
       -- Usuario arrastando toda a tela	
    elseif nodeMoving == nil then	
@@ -344,14 +330,14 @@ local function dragNodeOrScreenOrSelectFocusEvent()
    end
 end
 
-function expandAll()
+local function expandAll()
    createDebugMessage("Expand All called!")
 
    local ret, graph = LogicModule.expandAll(SequentGraph, goalsList)			
    SequentGraph= prepareGraphToDraw(graph)
 end
 
-function inputFormula() 
+local function inputFormula() 
    -- Entra aqui quando além do if de cima o botao esquerdo foi pressionado.
    clearDebugMessages()
    createDebugMessage("Input formula called!")
@@ -359,7 +345,7 @@ function inputFormula()
    local s=require("socket")
 
    if client == nil then
-      client,m = s.connect("localhost",8383)	
+      client,m = s.connect("localhost",8080)	
    end
    if client then							
       createDebugMessage("client connected!")
@@ -377,7 +363,7 @@ function inputFormula()
    end	
 end
 
-function printProof() 
+local function printProof() 
    if SequentGraph ~= nil then
       LogicModule.printProof(SequentGraph)
       os.execute("pdflatex -output-directory=aux aux/proof.tex")					
@@ -386,7 +372,7 @@ function printProof()
    end	
 end
 
-function expandAllButtonEvent()
+local function expandAllButtonEvent()
    local xPos = windowWidth - 60
    local yPos = 5
    local xLen = 55
@@ -394,7 +380,7 @@ function expandAllButtonEvent()
    
    if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then	
       if love.mouse.isDown("l") then
-	 expandAll()					
+	 expandAll()
 	 love.timer.sleep(buttonTime)
       end
       love.graphics.setColor(100, 100, 200)
@@ -413,7 +399,7 @@ function expandAllButtonEvent()
    love.graphics.printf(expandAllButtonName, xPos + 30, yPos - 5, 0, "center")
 end
 
-function inputFormulaButtonEvent()
+local function inputFormulaButtonEvent()
    local xPos = windowWidth - 60
    local yPos = 50
    local xLen = 55
@@ -440,7 +426,7 @@ function inputFormulaButtonEvent()
    love.graphics.printf(inputFormulaButtonName, xPos + 30, yPos - 5, 0, "center")
 end
 
-function expandFormulaButtonEvent()
+local function expandFormulaButtonEvent()
    local xPos = windowWidth - 60
    local yPos = 95
    local xLen = 55
@@ -467,7 +453,7 @@ function expandFormulaButtonEvent()
    love.graphics.printf(expandFormulaButtonName, xPos + 30, yPos - 5, 0, "center")
 end
 
-function printProofButtonEvent()
+local function printProofButtonEvent()
    local xPos = windowWidth - 60
    local yPos = 140
    local xLen = 55
@@ -493,6 +479,8 @@ function printProofButtonEvent()
    love.graphics.printf(printProofButtonName, xPos + 30, yPos - 5, 0, "center")
 end
 
+-- Public functions: Love events
+
 function love.keypressed(key)
    if key == "a" and love.keyboard.isDown("lctrl") then
       expandAll()
@@ -504,20 +492,47 @@ function love.keypressed(key)
 end
 
 --[[
-To enable debug mode
+
 ]]--
 function love.load(arg)
-   if arg[#arg] == "-debug" then 
-      require("mobdebug").start() 
+
+   -- Prepara para debug
+   if arg[#arg] == "-debug" then
+      require("mobdebug").start()
+   end
+
+   -- Inicia controle de estatisticas da aplicacao.
+   logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
+   logger:setLevel(logging.INFO)
+
+   -- Love initial configuration
+   love.graphics.setBackgroundColor(255, 255, 255) -- White Color
+   love.graphics.setColor(0, 0, 0) -- Black Color
+   font = love.graphics.newFont(11)
+   isDragging = false
+   isChoosingFocus = false
+   isExpandingFormula = false
+
+   -- Chama a função de criar grafo de um determinado sistema de prova.
+   SequentGraph = LogicModule.createGraphFromTable("empty")
+   prepareGraphToDraw(SequentGraph)
+end
+
+--[[
+
+ ]]--
+function love.update(dt)
+   local s = 1/FPSCAP - dt
+   if s > 0 then 
+       love.timer.sleep(s*1000) 
    end
 end
 
 --[[
 Função do love usada para desenhar na tela todos os frames. Ela é chamada pelo love em intervalos de tempo
    muito curtos.
-      ]]--
+ ]]--
 function love.draw()
-   --	printDebugMessageTable(client)
    expandAllButtonEvent()
    inputFormulaButtonEvent()
    expandFormulaButtonEvent()    

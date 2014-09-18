@@ -13,10 +13,14 @@ require"parse_input"
 require"socket"
 
 
-local h = socket.bind("localhost",8383)
+local s = assert(socket.bind("localhost",8080))
+local i, p = s:getsockname()
+
+assert(i, p)
+
 print("Waiting connection")
 
-local user = h:accept()
+local user = assert(s:accept())
 print("user connected")
 
 while true do 
