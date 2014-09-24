@@ -6,11 +6,12 @@ SequentProver is a theorem prover for Propositional Minimal Logic. In current de
 Installation
 ============
 
-SequentProver depends on the following libraries:
+SequentProver depends on the following libraries (listed with the versions I'm using):
 
-* love (0.7.2 or superior)
-* luasocket (2.0.2-5 or superior)
-* lpeg (0.11-2 or superor)
+* love (0.7.2)
+* luasocket (3.0rc1-1)
+* lpeg (0.12-1)
+* lualogging (1.3.0-1)
 
 Löve is a canvas for Lua game development that we use to build the prover user interface. It can be downloaded from [the project website](https://love2d.org/).
 
