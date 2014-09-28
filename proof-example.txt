@@ -21,3 +21,6 @@ epsilon_2 = [A,epsilon_1] = ((((A imp (((((D imp (C)) imp (D)) imp (D)) imp (C))
 # Counter-examples:
 
 (A imp (B)) imp (B imp (A))
+
+
+((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)

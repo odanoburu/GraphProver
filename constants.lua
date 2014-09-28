@@ -42,4 +42,4 @@ expandAllButtonName = "Expand All"
 inputFormulaButtonName = "Input Formula"
 expandFormulaButtonName = "Expand Formula"
 printProofButtonName = "Print Proof"
-buttonTime = 150
+buttonTime = 0.15
