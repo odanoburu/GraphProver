@@ -225,15 +225,11 @@ end
    for i=1, numEdges do
    if edges[i]:getOrigem():getLabel() == edge:getOrigem():getLabel() and edges[i]:getDestino():getLabel() == edge:getDestino():getLabel()then
    -- Se a origem e destino forem a mesma, entao achei a aresta pra deletar no grafo	
-
-   createDebugMessage("DELETANDO ARESTA: "..edges[i]:getLabel()) 
-   createDebugMessage("Num arestas ANTES = "..#edges )
-   
+ 
    edges[i] = nil			
    isEdgeDeleted = true
    positionOfTheEdge = i			
    
-   createDebugMessage("Num arestas DEPOIS = "..#edges )
    -- aqui eu tenho que reorganizar a lista
    for j = positionOfTheEdge, numEdges do
    if j+1 > numEdges then

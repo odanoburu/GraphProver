@@ -10,14 +10,14 @@
 require 'constants'
 require 'utility'
 require 'SequentCalculusLogic'
-require "parse_input"
-require "logging.file"
-require "io" 
+require 'parse_input'
+require 'logging.file'
+require 'io' 
 
 -- Variáveis globais do modulo
-local logger, font, SequentGraph
+local logger, font
+local SequentGraph, seqNode, nodeExpanding
 local isDragging, isChoosingFocus, isExpandingFormula
-
 local FPSCAP = 60
 local text, input_formula = ""
 
@@ -222,7 +222,6 @@ local function drawGraphEvent(graph)
    applyForces(graph)
 end
 
-
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
 local function getNodeClicked() 
    -- Varrer todo o grafo procurando o vertice que pode ter sido clicado.
@@ -241,6 +240,194 @@ local function getNodeClicked()
    return nil   
 end
 
+local function expandAll()
+   if (SequentGraph ~= nil) then
+      local ret, graph = LogicModule.expandAll(SequentGraph)                    
+      SequentGraph= prepareGraphToDraw(graph)
+   end
+end
+
+local function inputFormula()    
+   logger:info("statistics -- Starting...")
+
+   -- text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
+   -- input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
+
+   text = "Type your formula: ((A imp (B)) imp (A)) imp (A)"
+   input_formula = "((A imp (B)) imp (A)) imp (A)"
+   
+   SequentGraph = LogicModule.createGraphFromTable("empty")
+   prepareGraphToDraw(SequentGraph)
+end
+
+local function expandFormula()
+   if (seqNode ~= nil) and (nodeExpanding ~= nil) then
+      local ret, graph = LogicModule.expandNode(SequentGraph, seqNode, nodeExpanding)                    
+      SequentGraph= prepareGraphToDraw(graph)
+   end
+end
+
+local function printProof()   
+   if SequentGraph ~= nil then
+      ret = LogicModule.printProof(SequentGraph)
+
+      if ret then
+         os.execute("pdflatex -output-directory=aux aux/prooftree.tex")
+         os.execute("htlatex aux/prooftree.tex '' '' -daux/"  )
+         
+         if os.capture() == "Darwin" then
+            os.execute("open aux/prooftree.html")                                        
+         elseif os.capture() == "Linux" then
+            os.execute("xdg-open aux/prooftree.html")
+         else
+            os.execute("start aux/prooftree.html")
+         end
+
+         os.execute("rm -f prooftree*")         
+      end
+   end  
+end
+
+local function showInputTextEvent()
+   font = love.graphics.newFont(12)
+
+   love.graphics.setColor(0, 0, 255)
+   love.graphics.setFont(font)  
+   love.graphics.printf(text, 0, 0, love.graphics.getWidth())
+end
+
+local function expandAllButtonEvent()
+   local xPos = windowWidth - 60
+   local yPos = 5
+   local xLen = 55
+   local yLen = 40
+   
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then    
+      if love.mouse.isDown("l") then
+         expandAll()
+         love.timer.sleep(buttonTime)
+      end
+      love.graphics.setColor(100, 100, 200)
+   else
+      love.graphics.setColor(0, 100, 200)
+   end
+   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
+   love.graphics.setColor(0, 0, 255)
+   love.graphics.setLineStyle("smooth")
+   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
+   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
+   love.graphics.setColor(255, 255, 255)
+   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
+   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
+   love.graphics.setColor(0, 0, 200)
+   love.graphics.printf(expandAllButtonName, xPos + 28, yPos + 5, 0, "center")
+end
+
+local function inputFormulaButtonEvent()
+   local xPos = windowWidth - 60
+   local yPos = 50
+   local xLen = 55
+   local yLen = 40
+
+   logger:debug("inputFormulaButtonEvent: Start")
+
+   logger:debug("inputFormulaButtonEvent: love.mouse.getX(): "..love.mouse.getX())
+   logger:debug("inputFormulaButtonEvent: love.mouse.getY(): "..love.mouse.getY())
+   logger:debug("inputFormulaButtonEvent: xPos: "..xPos)
+   logger:debug("inputFormulaButtonEvent: yPos: "..yPos)
+   logger:debug("inputFormulaButtonEvent: yLen: "..yLen)   
+   
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
+      logger:debug("inputFormulaButtonEvent: Mouse over inputFormulaButtonEvent")
+      
+      if love.mouse.isDown("l") then
+         logger:debug("inputFormulaButtonEvent: Mouse left click over inputFormulaButtonEvent")
+         inputFormula()
+         love.timer.sleep(buttonTime)
+      end
+      love.graphics.setColor(100, 100, 200)
+   else
+      love.graphics.setColor(0, 100, 200)
+   end
+   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
+   love.graphics.setColor(0, 0, 255)
+   love.graphics.setLineStyle("smooth")
+   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
+   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
+   love.graphics.setColor(255, 255, 255)
+   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
+   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
+   love.graphics.setColor(0, 0, 200)
+   love.graphics.printf(inputFormulaButtonName, xPos + 28, yPos + 5, 0, "center")
+end
+
+local function expandFormulaButtonEvent()
+   local xPos = windowWidth - 60
+   local yPos = 95
+   local xLen = 55
+   local yLen = 40
+
+   logger:debug("expandFormulaButtonEvent: Start")
+
+   logger:debug("expandFormulaButtonEvent: love.mouse.getX(): "..love.mouse.getX())
+   logger:debug("expandFormulaButtonEvent: love.mouse.getY(): "..love.mouse.getY())
+   logger:debug("expandFormulaButtonEvent: xPos: "..xPos)
+   logger:debug("expandFormulaButtonEvent: yPos: "..yPos)
+   logger:debug("expandFormulaButtonEvent: yLen: "..yLen)   
+   
+   
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
+      logger:debug("expandFormulaButtonEvent: Mouse over expandFormulaButton")
+      
+      if love.mouse.isDown("l") then
+         logger:debug("expandFormulaButtonEvent: Mouse left click over expandFormulaButton")
+         
+         isChoosingFocus = true
+         love.timer.sleep(buttonTime)         
+      end                        
+      love.timer.sleep(buttonTime*2)
+      love.graphics.setColor(100, 100, 200)
+   else
+      love.graphics.setColor(0, 100, 200)
+   end
+   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
+   love.graphics.setColor(0, 0, 255)
+   love.graphics.setLineStyle("smooth")
+   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
+   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
+   love.graphics.setColor(255, 255, 255)
+   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
+   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
+   love.graphics.setColor(0, 0, 200)
+   love.graphics.printf(expandFormulaButtonName, xPos + 28, yPos + 5, 0, "center")
+end
+
+local function printProofButtonEvent()
+   local xPos = windowWidth - 60
+   local yPos = 140
+   local xLen = 55
+   local yLen = 40
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
+      if love.mouse.isDown("l") then
+         printProof()                                   
+         love.timer.sleep(buttonTime)
+      end
+      love.graphics.setColor(100, 100, 200)
+   else
+      love.graphics.setColor(0, 100, 200)
+   end
+   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
+   love.graphics.setColor(0, 0, 255)
+   love.graphics.setLineStyle("smooth")
+   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
+   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
+   love.graphics.setColor(255, 255, 255)
+   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
+   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
+   love.graphics.setColor(0, 0, 200)
+   love.graphics.printf(printProofButtonName, xPos + 28, yPos + 5, 0, "center")
+end
+
 --- Esta função é chamada pela love.draw.
 --- A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
 --- conforme o botão continuar sendo pressionado e caso o clique tenha sido em um vertice esta função:
@@ -250,32 +437,37 @@ end
 --- 4- Ira chamar a funcao que expande o noh (segundo o calculo lohgico implementado), se 
 --- o foco (no do tipo Sequent) estiver definido.
 local function dragNodeOrScreenOrSelectFocusEvent()     
+
+   logger:debug("dragNodeOrScreenOrSelec: Start")
    
    if love.mouse.isDown("l") and isChoosingFocus then
+
+      logger:debug("dragNodeOrScreenOrSelec: Left click, waiting for a seq node...")
+
+      seqNode = getNodeClicked()
       
-      nodeFocus = getNodeClicked()
-      
-      if nodeFocus then 
+      if seqNode then
+
+         logger:debug("dragNodeOrScreenOrSelec: Seq node chosen")         
+         
          isChoosingFocus = false
          isExpandingFormula = true
          love.timer.sleep(2*buttonTime)    
       end               
       
    elseif love.mouse.isDown("l") and isExpandingFormula then
+
+      logger:debug("dragNodeOrScreenOrSelec: Left click, waiting for a formula node...")     
       
       nodeExpanding = getNodeClicked()
       
-      if nodeExpanding then 
-         isExpandingFormula = false
-         side = LogicModule.verifySideOfOperator(nodeFocus,nodeExpanding) 
+      if nodeExpanding then
 
-         if side == "Right" then 
-            SequentGraph = LogicModule.expandNodeImpRight(SequentGraph, nodeFocus, nodeExpanding)
-            SequentGraph = prepareGraphToDraw(SequentGraph)
-         elseif side == "Left" then
-            SequentGraph = LogicModule.expandNodeImpLeft(SequentGraph, nodeFocus, nodeExpanding)
-            SequentGraph = prepareGraphToDraw(SequentGraph)
-         end
+         logger:debug("dragNodeOrScreenOrSelec: Formula node chosen")
+         
+         isExpandingFormula = false
+
+         expandFormula()
       end
       
    end
@@ -323,150 +515,6 @@ local function dragNodeOrScreenOrSelectFocusEvent()
    end
 end
 
-local function expandAll()
-   createDebugMessage("Expand All called!")
-
-   local ret, graph = LogicModule.expandAll(SequentGraph, goalsList)                    
-   SequentGraph= prepareGraphToDraw(graph)
-end
-
-local function inputFormula() 
-   clearDebugMessages()
-   createDebugMessage("Input formula called!")
-   
-   logger:info("statistics -- Starting...")
-
-   text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
-   input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
-
-   SequentGraph = LogicModule.createGraphFromTable("empty")
-   prepareGraphToDraw(SequentGraph)
-end
-
-local function printProof() 
-   if SequentGraph ~= nil then
-      LogicModule.printProof(SequentGraph)
-      os.execute("pdflatex -output-directory=aux aux/proof.tex")                                        
-      --os.execute("xdg-open proof.pdf")
-      os.execute("open aux/proof.pdf")
-   end  
-end
-
-local function showInputTextEvent()
-   font = love.graphics.newFont(12)
-
-   love.graphics.setColor(0, 0, 255)
-   love.graphics.setFont(font)  
-   love.graphics.printf(text, 0, 0, love.graphics.getWidth())
-end
-
-local function expandAllButtonEvent()
-   local xPos = windowWidth - 60
-   local yPos = 5
-   local xLen = 55
-   local yLen = 40
-   
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then    
-      if love.mouse.isDown("l") then
-         expandAll()
-         love.timer.sleep(buttonTime)
-      end
-      love.graphics.setColor(100, 100, 200)
-   else
-      love.graphics.setColor(0, 100, 200)
-   end
-   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
-   love.graphics.setColor(0, 0, 255)
-   love.graphics.setLineStyle("smooth")
-   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
-   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
-   love.graphics.setColor(255, 255, 255)
-   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
-   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
-   love.graphics.setColor(0, 0, 200)
-   love.graphics.printf(expandAllButtonName, xPos + 28, yPos + 5, 0, "center")
-end
-
-local function inputFormulaButtonEvent()
-   local xPos = windowWidth - 60
-   local yPos = 50
-   local xLen = 55
-   local yLen = 40
-   
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
-      if love.mouse.isDown("l") then
-         inputFormula()
-         love.timer.sleep(buttonTime)
-      end
-      love.graphics.setColor(100, 100, 200)
-   else
-      love.graphics.setColor(0, 100, 200)
-   end
-   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
-   love.graphics.setColor(0, 0, 255)
-   love.graphics.setLineStyle("smooth")
-   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
-   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
-   love.graphics.setColor(255, 255, 255)
-   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
-   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
-   love.graphics.setColor(0, 0, 200)
-   love.graphics.printf(inputFormulaButtonName, xPos + 28, yPos + 5, 0, "center")
-end
-
-local function expandFormulaButtonEvent()
-   local xPos = windowWidth - 60
-   local yPos = 95
-   local xLen = 55
-   local yLen = 40
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then    
-      if love.mouse.isDown("l") then
-         love.timer.sleep(buttonTime)
-         isChoosingFocus = true
-      end                        
-      love.timer.sleep(buttonTime*2)
-      love.graphics.setColor(100, 100, 200)
-   else
-      love.graphics.setColor(0, 100, 200)
-   end
-   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
-   love.graphics.setColor(0, 0, 255)
-   love.graphics.setLineStyle("smooth")
-   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
-   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
-   love.graphics.setColor(255, 255, 255)
-   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
-   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
-   love.graphics.setColor(0, 0, 200)
-   love.graphics.printf(expandFormulaButtonName, xPos + 28, yPos + 5, 0, "center")
-end
-
-local function printProofButtonEvent()
-   local xPos = windowWidth - 60
-   local yPos = 140
-   local xLen = 55
-   local yLen = 40
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
-      if love.mouse.isDown("l") then
-         printProof()                                   
-         love.timer.sleep(buttonTime)
-      end
-      love.graphics.setColor(100, 100, 200)
-   else
-      love.graphics.setColor(0, 100, 200)
-   end
-   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
-   love.graphics.setColor(0, 0, 255)
-   love.graphics.setLineStyle("smooth")
-   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
-   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
-   love.graphics.setColor(255, 255, 255)
-   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
-   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
-   love.graphics.setColor(0, 0, 200)
-   love.graphics.printf(printProofButtonName, xPos + 28, yPos + 5, 0, "center")
-end
-
 -- Public functions: Love events
 
 function love.keypressed(key)
@@ -488,7 +536,7 @@ function love.keypressed(key)
          parsed_formula = parse_input(input_formula)
          t_formula = stringtotable(parsed_formula)
          
-         SequentGraph, goalsList = LogicModule.createGraphFromTable(t_formula)
+         SequentGraph = LogicModule.createGraphFromTable(t_formula)
          prepareGraphToDraw(SequentGraph)
       end
    end
@@ -505,9 +553,9 @@ function love.load(arg)
       require("mobdebug").start()
    end
 
-   -- Statistic control
-   logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
-   logger:setLevel(logging.INFO)
+   -- Log control
+   logger = logging.file("aux/prover-main%s.log", "%Y-%m-%d")
+   logger:setLevel(logging.DEBUG)
 
    -- Love initial configuration
    love.graphics.setBackgroundColor(255, 255, 255) -- White Color

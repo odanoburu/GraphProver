@@ -109,9 +109,7 @@ function SequentEdge:new(label, origem, destino)
    
    label = label .. edgeCount
 
-   createDebugMessage("AQUI!Edge "..label)
    return Edge:new(label, origem, destino)
-
 end
 
 
