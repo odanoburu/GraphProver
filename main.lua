@@ -241,7 +241,7 @@ local function getNodeClicked()
 end
 
 local function expandAll()
-   if (SequentGraph ~= nil) then
+   if (SequentGraph ~= nil) and (SequentGraph:getNode(lblNodeGG):getEdgesOut() ~= nil) then
       local ret, graph = LogicModule.expandAll(SequentGraph)                    
       SequentGraph= prepareGraphToDraw(graph)
    end
