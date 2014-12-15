@@ -47,16 +47,16 @@ lblEdgeEsq = "esq"
 lblEdgeDir = "dir"
 lblEdgeDeducao = "DED"
 lblEdgeGoal = "Goal"
-lblEdgeContext = "Context"
+lblEdgeCounterModel = "COUNTER"
+lblEdgeAccessability = "Access"
+lblEdgeSatisfy = "sat"
+lblEdgeUnsatisfy = "unsat"
 
 lblNodeGG = "GG"
 lblNodeEsq = "e"
 lblNodeDir = "d"
 lblNodeBrackets = "[]"
-
-lblCarnality = "log_"
-lblUnary = "u"
-lblBinary = "b" 
+lblNodeWorld = "w"
 
 -- Side definitions
 leftSide = "Left"

@@ -19,18 +19,15 @@ andNodeCount = 0
 notNodeCount = 0
 orNodeCount  = 0
 implyNodeCount = 0
-sequentNodeCount = 0 -- o label esquerda("esq") e direita("dir") do sequente vai ser o mesmo contador
+sequentNodeCount = 0
 esqNodeCount = 0
 dirNodeCount = 0
 bracketNodeCount = 0
 
---[[ 
-   Defining the SequentNode, extends Node
-]]--
+--- Defining the SequentNode, extends Node
 SequentNode = {}
 
-function SequentNode:new(labelNode) -- testar esse override
-
+function SequentNode:new(labelNode)
    local typeNode = labelNode
 
    if labelNode == opSeq.graph then
@@ -64,22 +61,15 @@ function SequentNode:new(labelNode) -- testar esse override
    newNode:setInformation("type", typeNode)
    newNode:setInformation("isExpanded", false)
 
-   -- Alterado em 31-12-2012 para iniciar as listas edgesIn e edgesOut de cada noh (Hermann)
    newNode:initEdgesIn()
    newNode:initEdgesOut()
-   -- Fim alteracao (Hermann 31-12-2012)
 
    return newNode
 end
 
---[[ 
-   Defining the SequentEdge, extends Edge
-]]--
-SequentEdge = {}-- = Edge:new("SequentEdgeClass", )
+SequentEdge = {}
 
---[[
-   If label is equals to "", then a number is created acording to the origin node edgeCount field.	
-]]--
+--- If label is equals to "", then a number is created acording to the origin node edgeCount field.	
 function SequentEdge:new(label, origem, destino)
 
    local edgeCount = nil
@@ -88,11 +78,9 @@ function SequentEdge:new(label, origem, destino)
       return Edge:new(label, origem, destino)
    end
    
-   -- é a string vazia
    local labelNodeOrigin = string.sub(origem:getLabel(), 2)		
    
    if tonumber(labelNodeOrigin) == nil then
-      -- "SequentEdge:new só gera numeros para arestas que tenham origem em vertices com label: "..lblNodeEsq.."+numero ou "..lblNodeDir.."+numero "
       return Edge:new(label, origem, destino)
    end
    
@@ -102,7 +90,6 @@ function SequentEdge:new(label, origem, destino)
       origem:setInformation("edgeCount", 0)
       edgeCount = 0
    else
-      -- incremento o edgeCount, ja tinha uma aresta sem label saindo desse vertice
       edgeCount = edgeCount + 1
       origem:setInformation("edgeCount", edgeCount)
    end

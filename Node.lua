@@ -8,26 +8,16 @@
 ]]--
 
 
---[[
-   Defining the Node
-]]--
 Node = {}
 
---[[
-   Defining the Metatable
-]]--
 Node_Metatable = { __index = Node }
 
---[[
-   Class Constructor
-   The label must not be nil.
-   (x,y) can be both nil or both numbers.
-   
-   Param:
-   label: A string with the label of the node, must not be nil.
-   x: A number which defines the position of the node in the x axis.
-   y: A number which defines the position of the node in the y axis.
-]]--
+--- Class Constructor
+--   The label must not be nil.
+--   (x,y) can be both nil or both numbers.
+-- @param label: A string with the label of the node, must not be nil.
+-- @param x: A number which defines the position of the node in the x axis.
+-- @param y: A number which defines the position of the node in the y axis.
 function Node:new (label, x, y)
    assert( type(label) == "string" , "Node:new expects a string." )
 
@@ -61,70 +51,50 @@ function Node:new (label, x, y)
    return setmetatable( ini, Node_Metatable )
 end
 
---[[
-   Defines the label of the node
-   Param:
-   label: A string with the label of the node
-]]--
+--- Defines the label of the node
+-- @param label: A string with the label of the node
 function Node:setLabel( label )
    assert( type(label) == "string" , "Node:setLabel expects a string.")
    self.label = label
 end
 
---[[ 
-   Returns the label of the node
-]]--
+--- Returns the label of the node
 function Node:getLabel()
    return self.label
 end
 
---[[
-   Create a field named "infoName" with the value "infoValue". If the field already exists, the value of it is atualized
-   Param:
-   infoName: A string or a number containing the name of the field of the desired information.
-   infoValue: A value which the field "infoName" will have.
-]]--
+--- Create a field named "infoName" with the value "infoValue". If the field already exists, the value of it is atualized
+-- @param infoName: A string or a number containing the name of the field of the desired information.
+-- @param infoValue: A value which the field "infoName" will have.
 function Node:setInformation(infoName, infoValue)	
    assert( (type(infoName) == "number")or(type(infoName) == "string") , "Node:setInformation: infoName must be a number or a string.")
    self.info[infoName] = infoValue
 end
 
---[[
-   Retorna o valor da informaçao do campo infoName
-   Param:
-   infoName: A string or a number containing the name of the field of the desired information.
-]]--
+--- Retorna o valor da informaçao do campo infoName
+-- @param infoName: A string or a number containing the name of the field of the desired information.
 function Node:getInformation(infoName)
    assert( (type(infoName) == "number")or(type(infoName) == "string") , "Node:getInformation expects a number or a string.")
    return self.info[infoName]
 end
 
---[[ 
-   Define the x position of the node.
-   Param:
-   x: A number which defines the position of the node in the x axis
-]]--
+--- Define the x position of the node.
+-- @param x: A number which defines the position of the node in the x axis
 function Node:setPositionX(x)
    assert( type(x) == "number" , "Node:setPosition expects a number.")
    self.x = x
 end
 
---[[
-   Define the y position of the node.
-   Param:
-   y: A number which defines the position of the node in the y axis
-]]--
+--- Define the y position of the node.
+-- @param y: A number which defines the position of the node in the y axis
 function Node:setPositionY(y)
    assert( type(y) == "number" , "Node:setPosition expects a number.")
    self.y = y
 end
 
---[[ 
-   Define the (x,y) position of the node.
-   Param:
-   x: A number which defines the position of the node in the x axis
-   y: A number which defines the position of the node in the y axis
-]]--
+--- Define the (x,y) position of the node.
+-- @param x: A number which defines the position of the node in the x axis
+-- @param y: A number which defines the position of the node in the y axis
 function Node:setPosition(x, y)
    assert( type(x) == "number" , "Node:setPosition expects a number, x is not a number.")
    assert( type(y) == "number" , "Node:setPosition expects a number, y is not a number.")
@@ -132,23 +102,17 @@ function Node:setPosition(x, y)
    self.y = y
 end
 
---[[
-   Returns the position of the node
-]]--
+--- Returns the position of the node
 function Node:getPosition()
    return self.x, self.y
 end
 
---[[
-   Return the x position of the node
-]]--
+--- Return the x position of the node
 function Node:getPositionX()
    return self.x
 end
 
---[[
-   Return the y position of the node
-]]--
+--- Return the y position of the node
 function Node:getPositionY()
    return self.y
 end
@@ -207,7 +171,8 @@ function Node:setEdgesOut(edgesOut)
    end
    
 end
--- The next two functions set the initial list of edges in and out to the emptylist (Hermann 31-12-2012)
+
+--- The next two functions set the initial list of edges in and out to the emptylist (Hermann 31-12-2012)
 function Node:initEdgesIn()
    if self.edgesIn == nil then
       self.edgesIn = {}
@@ -230,8 +195,8 @@ function Node:getEdgesIn()
    return self.edgesIn
 end
 
+ --- Retorna a primeira aresta da lista de arestas que entram do vertice que tenha o label desejado
 function Node:getEdgeIn(label)
-   -- retorna a primeira aresta da lista de arestas que entram do vertice que tenha o label desejado
    if self.edgesIn == nil then
       return nil
    end
@@ -245,8 +210,8 @@ function Node:getEdgeIn(label)
    return nil
 end
 
+--- Retorna a primeira aresta da lista de arestas que saem do vertice que tenha o label desejado
 function Node:getEdgeOut(label)
-   -- retorna a primeira aresta da lista de arestas que saem do vertice que tenha o label desejado
    if self.edgesOut == nil then
       return nil
    end

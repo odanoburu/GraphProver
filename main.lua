@@ -7,10 +7,10 @@
 
 ]]--
 
-require 'constants'
-require 'utility'
+require 'ConstantsForLove'
+require 'Utility'
 require 'SequentCalculusLogic'
-require 'parse_input'
+require 'ParseInput'
 require 'logging.file'
 require 'io' 
 
@@ -250,11 +250,15 @@ end
 local function inputFormula()    
    logger:info("statistics -- Starting...")
 
-   -- text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
-   -- input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
+   --text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
+   --input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
 
-   text = "Type your formula: ((A imp (B)) imp (A)) imp (A)"
-   input_formula = "((A imp (B)) imp (A)) imp (A)"
+   --text = "Type your formula: (B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
+   --input_formula = "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
+
+   text = "Type your formula: "
+   input_formula = ""
+
    
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
@@ -536,7 +540,9 @@ function love.keypressed(key)
          parsed_formula = parse_input(input_formula)
          t_formula = stringtotable(parsed_formula)
          
-         SequentGraph = LogicModule.createGraphFromTable(t_formula)
+         local t_mimp_formula = implicational(t_formula)
+         
+         SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
          prepareGraphToDraw(SequentGraph)
       end
    end

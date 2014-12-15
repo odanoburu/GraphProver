@@ -37,6 +37,19 @@ function stringtotable(s)
    return(t)
 end
 
+function tabletostring(t)
+
+   local s = ""
+   
+   if t["tag"] == "Atom" then
+      s = t["1"]
+   else
+      s = "("..tabletostring(t["1"])..") "..t["tag"].." ("..tabletostring(t["2"])..")"
+   end
+
+   return s
+   
+end
 
 function os.capture()
    local f = assert(io.popen('uname', 'r'))
@@ -46,14 +59,4 @@ function os.capture()
    s = string.gsub(s, '%s+$', '')
    s = string.gsub(s, '[\n\r]+', ' ')
    return s
-end
-
-function Set(t)
-  local s = {}
-  for _,v in pairs(t) do s[v] = true end
-  return s
-end
-
-function contains(t, e)
-  return t[e]
 end

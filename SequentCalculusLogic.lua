@@ -16,13 +16,15 @@ logger:setLevel(logging.DEBUG)
 
 LogicModule = {}
 
-local GoalSequentNode = nil
-local serializedSequent = ""
 local goalsList = nil
+local graph = nil
+local counterModel = nil
+
+local serializedSequent = ""
 
 -- Private functions
 
-local function createNewSequent(graph, sequentNode)
+local function createNewSequent(sequentNode)
    local copiedSequent = nil
 
    local listNewNodes = {}
@@ -239,46 +241,6 @@ local function createGraphSequent(seq_tabela, letters)
    return SequentGraph
 end
 
-local function expandNodeAtomic(graph, sequentNode, node)
-   local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
-   local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
-   local side = " "
-   local isAxiom = false
-
-   for i=1, #edgesLeft do
-      if edgesLeft[i]:getDestino():getLabel() == node:getLabel() then
-         side = "Left"
-         break
-      end
-   end 
-   if side == "Left" then 
-      if rightFormulaNode:getLabel() == node:getLabel() then 
-         isAxiom = true
-      end
-   end 
-   if isAxiom then
-      sequentNode:setInformation("isAxiom", true)
-      return true, graph 
-   else 
-      return false, graph
-   end
-end
-
-local function expandNodeImp(graph, sequentNode, nodeOpImp)
-
-   local sideOfOperator = LogicModule.verifySideOfOperator(sequentNode, nodeOpImp)      
-
-   if sideOfOperator == leftSide then
-      return LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
-   elseif sideOfOperator == rightSide then
-      return LogicModule.expandNodeImpRight(graph, sequentNode, nodeOpImp)
-   elseif sideOfOperator == nil then
-      return nil
-   end          
-
-   return graph
-end
-
 local function verifySideOfSequent(originNode, targetNode)
    edgesOut = originNode:getEdgesOut()
 
@@ -297,31 +259,38 @@ local function verifySideOfSequent(originNode, targetNode)
    return false
 end
 
-local function generateCounterModel(sequentNode, counterModel)
+--- Verifies operator side in a sequent
+--- Return "Left" if the operatorNode is in the left side of the sequentNode
+--- Return "Right" if the operatorNode is in the right side of the sequentNode
+--- Return "Left" if the operatorNode is in the left side of the sequentNode
+--- @param sequentNode a node that the operatorNode should participate
+--- @param operatorNode a node that is the logical constant focused
+local function verifySideOfOperator(sequentNode, operatorNode)
+   assert( operatorNode ~= nil , "verifySideOfOperator must be called only if operatorNode is not null.")
+   assert( getmetatable(operatorNode) == Node_Metatable , "verifySideOfOperator operatorNode must be a Node")
+   assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.") 
+   assert( getmetatable(sequentNode) == Node_Metatable , "verifySideOfOperator sequentNode must be a Node")
 
-   if counterModel == nil then
-      -- iniciar table
-   end 
-
-   local nodeLeft = sequentNode:getEdgeOut(lblEdgeLeft):getDestino()
-   local nodeRight = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
-   
-   local listEdgesOut = nodeLeft:getEdgesOut()
-   for i=1, #listEdgesOut do
-      -- estende table (satisfaz) com listEdgesOut[i]:getDestino():getLabel()
+   seqEdgesOutList = sequentNode:getEdgesOut()
+   if seqEdgesOutList == nil then
+      return nil
    end
 
-   local outsideBrackets = nodeRight:getEdgeOut("0"):getDestino()
-   -- estende table (não satisfaz) com outsideBrackets:getLabel()
+   for i=1, #seqEdgesOutList do
+      if seqEdgesOutList[i]:getLabel() == lblEdgeEsq then
+         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
+            return "Left"
+         end
+      end
 
-   local nodeBrackets = nodeRight:getEdgeOut("1"):getDestino()  
-   local listEdgesOut = nodeBrackets:getEdgesOut()
-   for i=1, #listEdgesOut do
-      -- estende table (não satisfaz) com listEdgesOut[i]:getDestino():getLabel()
+      if seqEdgesOutList[i]:getLabel() == lblEdgeDir then
+         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
+            return "Right"
+         end
+      end               
    end
    
-   return counterModel
-
+   return nil 
 end
 
 local function markProvedSequent(sequentNode)
@@ -354,7 +323,7 @@ local function markProvedSequent(sequentNode)
    end
 end
 
-local function countGraphElements(graph) 
+local function countGraphElements() 
    local countNodeElements = {}
    local countEdgesElements = {}  
 
@@ -395,7 +364,6 @@ local function printFormula(formula)
    local formulaNumber = formula:getLabel():sub(6,formula:getLabel():len())
 
    if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
-      
       if formula:getLabel():sub(1,2) == lblNodeBrackets then
          ret = ret.."["
          for i, edge in ipairs(formula:getEdgesOut()) do
@@ -515,7 +483,7 @@ local function compareFormulasUsage(formulaA, formulaB)
       countFormulaB = 0
    end
 
-   return countFormulaA <= countFormulaB --to force alternating formulae with same count 
+   return countFormulaB > countFormulaA --to force alternating formulae with same count 
 end
 
 local function compareSideFormulas(sideSeq, sideSeqParent)
@@ -537,13 +505,13 @@ local function compareSideFormulas(sideSeq, sideSeqParent)
       end      
    end
 
-   setOfFormulas = Set(formulasSeqParent)
+   local setOfFormulas = Set:new(formulasSeqParent)
 
    logger:debug("compareSideFormulas: Formulae of repeated sequent")   
    for _, edgeSeq in ipairs(sideSeq:getEdgesOut()) do
       formulaSeq = edgeSeq:getDestino()
       if formulaSeq:getInformation("type") ~= lblNodeBrackets then
-         if not contains(setOfFormulas, formulaSeq) then
+         if not setOfFormulas:contains(formulaSeq) then
             ret = false
             break
          end
@@ -594,152 +562,89 @@ local function checkLoop(sequentNode)
    return ret
 end
 
--- Public functions
+local function generateCounterModel(sequentNode, counterModel)
 
---- Create a graph from a formula in text form.
---- Returns a graph that represents the given formula.
---- @param formulaText - Formula in string form.
-function LogicModule.createGraphFromTable( seq_tabela )
-   local graph
-   local letters = {}
+  local ret = nil
 
-   if seq_tabela=="empty" then 
-      graph = createGraphEmpty()
-      return graph
-   else
-      graph = createGraphSequent(seq_tabela, letters)
-      return graph
-   end
-end
+   if counterModel == nil then
 
---- Expand a operator in a sequent.
---- For a specific graph and a node of that graph, it expands the node if that node is an operator.
---- The operator node is only expanded if a sequent node were previusly selected.
---- @param graph The graph that contains the target node.
---- @param targetNode The node that you want to expand.
-function LogicModule.expandNode( graph, GoalSequentNode, targetNode)
-   assert( getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
+      -- Cria nós dos mundos
+      local world0 = Node:new(lblNodeWorld.."0")
+      world0:setInformation("type", lblNodeWorld)
+      
+      local world1 = Node:new(lblNodeWorld.."1")
+      world1:setInformation("type", lblNodeWorld)
 
-   local typeOfNode = targetNode:getInformation("type")
-   local wasExpanded = true
+      -- Criar aresta do sequente para o mundo 0
+      local edgeCounter = Edge:new(lblEdgeCounterModel, sequentNode, world0)
+      
+      -- Criar aresta do mundo 0 para o mundo 1
+      local edgeAccess = Edge:new(lblEdgeAccessability, world0, world1)
 
-   local newGraph = graph
+      -- Adicionar nós e arestas no grafo
+      graph:addNode(world0)
+      graph:addNode(world1)
+      graph:addEdge(edgeCounter)
+      graph:addEdge(edgeAccess)
+      
+      local seqSideRight = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
+      local seqSideLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+      local formula = nil
+      local edgeSat = nil
 
-   if not GoalSequentNode:getInformation("isExpanded") then
-      if typeOfNode == opImp.graph then                 
-         newGraph = expandNodeImp(graph, GoalSequentNode, targetNode)  
-      else
-         wasExpanded, newGraph = expandNodeAtomic(graph, GoalSequentNode, targetNode)
+      -- Para cada formula à esq do sequente, criar aresta SAT ligando ao mundo 1
+      local leftFormulasEdges = seqSideLeft:getEdgesOut()
+      for i=1,#leftFormulasEdges do
+         formula = leftFormulasEdges[i]:getDestino()
+         edgeSat = Edge:new(lblEdgeSatisfy, world1, formula)
+         graph:addEdge(edgeSat)
       end
+
+      -- Para cada formula à direita:
+      -- Se estiver fora do bracket criar aresta NOT SAT ligando ao mundo 1
+      local formulaOutsideBracket = seqSideRight:getEdgeOut("0"):getDestino()
+      edgeSat = Edge:new(lblEdgeSatisfy, world1, formula)
+      graph:addEdge(edgeSat)
+
+      -- Se estiver no bracket criar aresta NOT SAT ligando ao mundo 0      
+      local formulasInsideBracketEdges = seqSideRight:getEdgeOut("1"):getDestino():getEdgesOut()      
+      for i=1,#formulasInsideBracketEdges do
+         formula = formulasInsideBracketEdges[i]:getDestino()
+         edgeSat = Edge:new(lblEdgeUnsatisfy, world0, formula)
+         graph:addEdge(edgeSat)
+      end
+      
+      ret = world0      
+      
    end
- 
-   if GoalSequentNode:getInformation("isExpanded") == false and wasExpanded then
-      GoalSequentNode:setInformation("isExpanded", true)
+   
+   return ret
 
-      goalsList[GoalSequentNode:getLabel()]:deleteGoal() -- Ja usei esse sequente, nao guardo a lista de goals dele
-
-      GoalSequentNode = nil -- Ja expandiu, agora escolhe um sequente de novo.
-   end
-
-   return wasExpanded, newGraph
 end
 
-function LogicModule.expandAll(graph)
+local function expandNodeAtomic(sequentNode, node)
+   local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
+   local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
+   local side = " "
+   local isAxiom = false
 
-   local newGraph = graph               
-   local isAllExpanded = true
-   local ret
-
-   logger:debug("LogicModule.expandAll: Start")
-   for k,goal in pairs(goalsList) do
-      local seq = goal:getSequent()
-
-      assert( getmetatable(seq) == Node_Metatable , "LogicModule.expandAll expects a Node")
-
-      if not seq:getInformation("isExpanded") then
-         isAllExpanded = false
-
-         logger:debug("LogicModule.expandAll: Expanding sequent "..k)
-
-         local formulaNode = nil                        
-         local leftSide = goal:getLeftSide()
-         local rightSide = goal:getRightSide()
-
-         table.sort(leftSide, compareFormulasUsage)
-         table.sort(rightSide, compareFormulasUsage)         
-
-         if #rightSide ~= 0 then
-            for _,formulaNode in pairs(rightSide) do
-               ret, newGraph = LogicModule.expandNode(graph, seq, formulaNode)
-               LogicModule.printProof(newGraph, k)
-               if ret then break end
-            end
-            
-            if not ret and #leftSide ~= 0  then
-               for _,formulaNode in pairs(leftSide) do
-                  ret, newGraph = LogicModule.expandNode(graph, seq, formulaNode)
-                  LogicModule.printProof(newGraph, k)                  
-                  if ret then break end
-               end
-            end
-         end
-
-         seq:setInformation("isExpanded", true)
+   for i=1, #edgesLeft do
+      if edgesLeft[i]:getDestino():getLabel() == node:getLabel() then
+         side = "Left"
          break
       end
-   end
-
-   if not isAllExpanded then
-      ret, newGraph = LogicModule.expandAll(newGraph)
-   else
-      local initialSequents = newGraph:getNode(lblNodeGG):getEdgesOut()
-
-      if initialSequents ~= nil then
-         for i=1, #initialSequents do
-            markProvedSequent(initialSequents[i]:getDestino())
-         end
+   end 
+   if side == "Left" then 
+      if rightFormulaNode:getLabel() == node:getLabel() then 
+         isAxiom = true
       end
+   end 
+   if isAxiom then
+      sequentNode:setInformation("isAxiom", true)
+      return true, graph 
+   else 
+      return false, graph
    end
-
-   return ret, newGraph 
-end
-
-function LogicModule.printProof(graph, nameSufix)
-   assert( getmetatable(graph) == Graph_Metatable , "printProof expects a graph.")      
-
-   if nameSufix == nil then nameSufix = "" end
-   
-   local file = io.open("aux/prooftree"..nameSufix..".tex", "w")   
-   local goalEdge = graph:getNode(lblNodeGG):getEdgesOut()
-   local ret = false
-
-   if (goalEdge ~= nil) and (#goalEdge > 0) then
-      
-      local seq = goalEdge[1]:getDestino()
-
-      file:write("\\documentclass[landscape]{article}\n\n")
-      file:write("\\usepackage{proof}\n")
-      file:write("\\usepackage{qtree}\n\n")
-      file:write("\\begin{document}\n")
-      file:write("$$\n")
-
-      printSequent(seq, file)
-      
-      serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
-      serializedSequent = serializedSequent:gsub("\\to", "→")
-      logger:info("statistics -- Serialized sequent: "..serializedSequent)  
-      logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
-
-      countGraphElements(graph)
-
-      file:write("\n$$")   
-      file:write("\\end{document}\n")
-      file:close()
-
-      ret = true
-   end
-
-   return ret
 end
 
 -- The imp-left rule of Sequent Calculus. The rule follows de schema bellow:
@@ -752,10 +657,10 @@ end
 -- @param sequentNode The input sequent
 -- @param nodeOpImp The formula of the input sequent that will be expanded
 -- @return none (graph state is transformed)
-function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
+local function expandNodeImpLeft(sequentNode, nodeOpImp)
 
-   local NewSequentNode1, seqListNodes1, seqListEdges1=createNewSequent(graph, sequentNode)
-   local NewSequentNode2, seqListNodes2, seqListEdges2=createNewSequent(graph, sequentNode)
+   local NewSequentNode1, seqListNodes1, seqListEdges1=createNewSequent(sequentNode)
+   local NewSequentNode2, seqListNodes2, seqListEdges2=createNewSequent(sequentNode)
    graph:addNodes(seqListNodes1)
    graph:addNodes(seqListNodes2)
    graph:addEdges(seqListEdges1)
@@ -831,22 +736,25 @@ function LogicModule.expandNodeImpLeft(graph, sequentNode, nodeOpImp)
    -- 2.2. Add B (from A \to B) on the left
    local newEdgeLeft = SequentEdge:new(labelEdgeRemoved, nodeLeft2, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino()) 
    graph:addEdge(newEdgeLeft)
-
-
+   
    -- Add left and right premisses as new sequent goals
    if not checkLoop(NewSequentNode1) then
       goalsList[NewSequentNode1:getLabel()] = assembleGoalList(NewSequentNode1)
+   else
+      counterModel = generateCounterModel(NewSequentNode1, counterModel)
    end
 
    if not checkLoop(NewSequentNode2) then
       goalsList[NewSequentNode2:getLabel()] = assembleGoalList(NewSequentNode2)
+   else
+      counterModel = generateCounterModel(NewSequentNode2, counterModel)      
    end
      
    return graph      
 end
 
-function LogicModule.expandNodeImpRight(graph, sequentNode, nodeOpImp)
-   local NewSequentNode, seqListNodes, seqListEdges=createNewSequent(graph, sequentNode)
+local function expandNodeImpRight(sequentNode, nodeOpImp)
+   local NewSequentNode, seqListNodes, seqListEdges=createNewSequent(sequentNode)
 
    graph:addNodes(seqListNodes)
    graph:addEdges(seqListEdges)
@@ -873,41 +781,175 @@ function LogicModule.expandNodeImpRight(graph, sequentNode, nodeOpImp)
 
    if not checkLoop(NewSequentNode) then   
       goalsList[NewSequentNode:getLabel()] = assembleGoalList(NewSequentNode)
+   else
+      counterModel = generateCounterModel(NewSequentNode, counterModel)      
    end
 
    return graph     
 end
 
---- Verifies operator side in a sequent
---- Return "Left" if the operatorNode is in the left side of the sequentNode
---- Return "Right" if the operatorNode is in the right side of the sequentNode
---- Return "Left" if the operatorNode is in the left side of the sequentNode
---- @param sequentNode a node that the operatorNode should participate
---- @param operatorNode a node that is the logical constant focused
-function LogicModule.verifySideOfOperator(sequentNode, operatorNode)
-   assert( operatorNode ~= nil , "verifySideOfOperator must be called only if operatorNode is not null.")
-   assert( getmetatable(operatorNode) == Node_Metatable , "verifySideOfOperator operatorNode must be a Node")
-   assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.") 
-   assert( getmetatable(sequentNode) == Node_Metatable , "verifySideOfOperator sequentNode must be a Node")
+local function expandNodeImp(sequentNode, nodeOpImp)
 
-   seqEdgesOutList = sequentNode:getEdgesOut()
-   if seqEdgesOutList == nil then
+   local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpImp)      
+
+   if sideOfOperator == leftSide then
+      return expandNodeImpLeft(sequentNode, nodeOpImp)
+   elseif sideOfOperator == rightSide then
+      return expandNodeImpRight(sequentNode, nodeOpImp)
+   elseif sideOfOperator == nil then
       return nil
+   end          
+
+   return graph
+end
+
+-- Public functions
+
+--- Create a graph from a formula in text form.
+--- Returns a graph that represents the given formula.
+--- @param formulaText - Formula in string form.
+function LogicModule.createGraphFromTable(seq_tabela)
+   local graph
+   local letters = {}
+
+   if seq_tabela=="empty" then 
+      graph = createGraphEmpty()
+      return graph
+   else
+      graph = createGraphSequent(seq_tabela, letters)
+      return graph
+   end
+end
+
+--- Expand a operator in a sequent.
+--- For a specific graph and a node of that graph, it expands the node if that node is an operator.
+--- The operator node is only expanded if a sequent node were previusly selected.
+--- @param graph The graph that contains the target node.
+--- @param targetNode The node that you want to expand.
+function LogicModule.expandNode(agraph, GoalSequentNode, targetNode)
+   assert( getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
+
+   local typeOfNode = targetNode:getInformation("type")
+   local wasExpanded = true
+
+   graph = agraph
+
+   if not GoalSequentNode:getInformation("isExpanded") then
+      if typeOfNode == opImp.graph then                 
+         graph = expandNodeImp(GoalSequentNode, targetNode)  
+      else
+         wasExpanded, graph = expandNodeAtomic(GoalSequentNode, targetNode)
+      end
+   end
+ 
+   if GoalSequentNode:getInformation("isExpanded") == false and wasExpanded then
+      GoalSequentNode:setInformation("isExpanded", true)
+
+      goalsList[GoalSequentNode:getLabel()]:deleteGoal() -- Ja usei esse sequente, nao guardo a lista de goals dele
+
+      GoalSequentNode = nil -- Ja expandiu, agora escolhe um sequente de novo.
    end
 
-   for i=1, #seqEdgesOutList do
-      if seqEdgesOutList[i]:getLabel() == lblEdgeEsq then
-         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
-            return "Left"
+   return wasExpanded, graph
+end
+
+function LogicModule.expandAll(agraph)
+
+   local isAllExpanded = true
+   local ret
+
+   graph = agraph               
+   
+   logger:debug("LogicModule.expandAll: Start")
+   for k,goal in pairs(goalsList) do
+      local seq = goal:getSequent()
+
+      assert( getmetatable(seq) == Node_Metatable , "LogicModule.expandAll expects a Node")
+
+      if not seq:getInformation("isExpanded") then
+         isAllExpanded = false
+
+         logger:debug("LogicModule.expandAll: Expanding sequent "..k)
+
+         local formulaNode = nil                        
+         local leftSide = goal:getLeftSide()
+         local rightSide = goal:getRightSide()
+
+         table.sort(leftSide, compareFormulasUsage)
+         table.sort(rightSide, compareFormulasUsage)         
+
+         if #rightSide ~= 0 then
+            for _,formulaNode in pairs(rightSide) do
+               ret, graph = LogicModule.expandNode(graph, seq, formulaNode)
+               LogicModule.printProof(graph, k)
+               if ret then break end
+            end
+            
+            if not ret and #leftSide ~= 0  then
+               for _,formulaNode in pairs(leftSide) do
+                  ret, graph = LogicModule.expandNode(graph, seq, formulaNode)
+                  LogicModule.printProof(graph, k)                  
+                  if ret then break end
+               end
+            end
+         end
+
+         seq:setInformation("isExpanded", true)
+         break
+      end
+   end
+
+   if not isAllExpanded then
+      ret, graph = LogicModule.expandAll(graph)
+   else
+      local initialSequents = graph:getNode(lblNodeGG):getEdgesOut()
+
+      if initialSequents ~= nil then
+         for i=1, #initialSequents do
+            markProvedSequent(initialSequents[i]:getDestino())
          end
       end
-
-      if seqEdgesOutList[i]:getLabel() == lblEdgeDir then
-         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
-            return "Right"
-         end
-      end               
    end
+
+   return ret, graph 
+end
+
+function LogicModule.printProof(agraph, nameSufix)
+   assert( getmetatable(agraph) == Graph_Metatable , "printProof expects a graph.")
+
+   graph = agraph
+
+   if nameSufix == nil then nameSufix = "" end
    
-   return nil 
+   local file = io.open("aux/prooftree"..nameSufix..".tex", "w")   
+   local goalEdge = agraph:getNode(lblNodeGG):getEdgesOut()
+   local ret = false
+
+   if (goalEdge ~= nil) and (#goalEdge > 0) then
+      
+      local seq = goalEdge[1]:getDestino()
+
+      file:write("\\documentclass[landscape]{article}\n\n")
+      file:write("\\usepackage{proof}\n")
+      file:write("\\usepackage{qtree}\n\n")
+      file:write("\\begin{document}\n")
+      file:write("$$\n")
+
+      printSequent(seq, file)
+      
+      serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
+      serializedSequent = serializedSequent:gsub("\\to", "→")
+      logger:info("statistics -- Serialized sequent: "..serializedSequent)  
+      logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
+
+      countGraphElements()
+
+      file:write("\n$$")   
+      file:write("\\end{document}\n")
+      file:close()
+
+      ret = true
+   end
+
+   return ret
 end
