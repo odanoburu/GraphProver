@@ -44,7 +44,8 @@ function tabletostring(t)
    if t["tag"] == "Atom" then
       s = t["1"]
    else
-      s = "("..tabletostring(t["1"])..") "..t["tag"].." ("..tabletostring(t["2"])..")"
+      --s = tabletostring(t["1"])..t["tag"].." ("..tabletostring(t["2"])..")"
+      s = "("..tabletostring(t["1"])..") "..t["tag"].." ("..tabletostring(t["2"])..")"      
    end
 
    return s

@@ -19,7 +19,8 @@ local logger, font
 local SequentGraph, seqNode, nodeExpanding
 local isDragging, isChoosingFocus, isExpandingFormula
 local FPSCAP = 60
-local text, input_formula = ""
+local text, input_formula, inputCommand = ""
+local editing_state = ""
 
 -- Private functions
 
@@ -187,10 +188,14 @@ local function drawGraphEvent(graph)
            elseif node:getInformation("isProved") == false then 
               love.graphics.setColor(255, 0, 0) -- Red circle
            elseif node:getInformation("isProved") == true then 
-              love.graphics.setColor(0, 255, 0) -- Green circle     
+              love.graphics.setColor(0, 255, 0) -- Green circle           
            end
            node:setInformation("isSelected", false)           
          end
+         
+         if node:getInformation("found") == true then 
+            love.graphics.setColor(255, 255, 0) -- Yellow circle
+         end         
          
          love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
          love.graphics.setColor(0, 0, 0, 99) -- Black 99%
@@ -247,7 +252,9 @@ local function expandAll()
    end
 end
 
-local function inputFormula()    
+local function inputFormula()
+   editing_state = inputFormula
+   
    logger:info("statistics -- Starting...")
 
    --text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
@@ -256,12 +263,21 @@ local function inputFormula()
    --text = "Type your formula: (B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
    --input_formula = "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
 
+   --text = "Type your formula: (A imp (A or (B)))"
+   --input_formula = "(A imp (A or (B)))"
+
    text = "Type your formula: "
    input_formula = ""
 
-   
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
+end
+
+local function inputCommand()
+   editing_state = inputCommand
+
+   text = "Type your command: "
+   input_command = ""
 end
 
 local function expandFormula()
@@ -331,21 +347,10 @@ local function inputFormulaButtonEvent()
    local xPos = windowWidth - 60
    local yPos = 50
    local xLen = 55
-   local yLen = 40
-
-   logger:debug("inputFormulaButtonEvent: Start")
-
-   logger:debug("inputFormulaButtonEvent: love.mouse.getX(): "..love.mouse.getX())
-   logger:debug("inputFormulaButtonEvent: love.mouse.getY(): "..love.mouse.getY())
-   logger:debug("inputFormulaButtonEvent: xPos: "..xPos)
-   logger:debug("inputFormulaButtonEvent: yPos: "..yPos)
-   logger:debug("inputFormulaButtonEvent: yLen: "..yLen)   
+   local yLen = 40  
    
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
-      logger:debug("inputFormulaButtonEvent: Mouse over inputFormulaButtonEvent")
-      
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then     
       if love.mouse.isDown("l") then
-         logger:debug("inputFormulaButtonEvent: Mouse left click over inputFormulaButtonEvent")
          inputFormula()
          love.timer.sleep(buttonTime)
       end
@@ -371,23 +376,10 @@ local function expandFormulaButtonEvent()
    local xLen = 55
    local yLen = 40
 
-   logger:debug("expandFormulaButtonEvent: Start")
-
-   logger:debug("expandFormulaButtonEvent: love.mouse.getX(): "..love.mouse.getX())
-   logger:debug("expandFormulaButtonEvent: love.mouse.getY(): "..love.mouse.getY())
-   logger:debug("expandFormulaButtonEvent: xPos: "..xPos)
-   logger:debug("expandFormulaButtonEvent: yPos: "..yPos)
-   logger:debug("expandFormulaButtonEvent: yLen: "..yLen)   
-   
-   
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
-      logger:debug("expandFormulaButtonEvent: Mouse over expandFormulaButton")
-      
-      if love.mouse.isDown("l") then
-         logger:debug("expandFormulaButtonEvent: Mouse left click over expandFormulaButton")
-         
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then     
+      if love.mouse.isDown("l") then         
          isChoosingFocus = true
-         love.timer.sleep(buttonTime)         
+         love.timer.sleep(buttonTime*2)         
       end                        
       love.timer.sleep(buttonTime*2)
       love.graphics.setColor(100, 100, 200)
@@ -442,18 +434,11 @@ end
 --- o foco (no do tipo Sequent) estiver definido.
 local function dragNodeOrScreenOrSelectFocusEvent()     
 
-   logger:debug("dragNodeOrScreenOrSelec: Start")
-   
    if love.mouse.isDown("l") and isChoosingFocus then
-
-      logger:debug("dragNodeOrScreenOrSelec: Left click, waiting for a seq node...")
 
       seqNode = getNodeClicked()
       
       if seqNode then
-
-         logger:debug("dragNodeOrScreenOrSelec: Seq node chosen")         
-         
          isChoosingFocus = false
          isExpandingFormula = true
          love.timer.sleep(2*buttonTime)    
@@ -461,16 +446,10 @@ local function dragNodeOrScreenOrSelectFocusEvent()
       
    elseif love.mouse.isDown("l") and isExpandingFormula then
 
-      logger:debug("dragNodeOrScreenOrSelec: Left click, waiting for a formula node...")     
-      
       nodeExpanding = getNodeClicked()
       
-      if nodeExpanding then
-
-         logger:debug("dragNodeOrScreenOrSelec: Formula node chosen")
-         
+      if nodeExpanding then         
          isExpandingFormula = false
-
          expandFormula()
       end
       
@@ -527,30 +506,53 @@ function love.keypressed(key)
    elseif key == "i" and love.keyboard.isDown("lctrl") then
       inputFormula()
    elseif key == "p" and love.keyboard.isDown("lctrl") then
-      printProof()              
+      printProof()
+   elseif key == "t" and love.keyboard.isDown("lctrl") then
+      inputCommand()   
    end
 
-   if key == "backspace" then
-      input_formula = input_formula:sub(1, input_formula:len()-1)
-      text = "Type your formula: " .. input_formula
+   if editing_state == inputFormula then
+      if key == "backspace" then
+         input_formula = input_formula:sub(1, input_formula:len()-1)
+         text = "Type your formula: " .. input_formula
+      end
+
+      if key == "return" or key == "kpenter" then
+         if input_formula ~= "" then
+            parsed_formula = parse_input(input_formula)
+            t_formula = stringtotable(parsed_formula)
+            
+            local t_mimp_formula = implicational(t_formula)
+            
+            SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
+            prepareGraphToDraw(SequentGraph)
+         end
+      end
    end
 
-   if key == "return" or key == "kpenter" then
-      if input_formula ~= "" then
-         parsed_formula = parse_input(input_formula)
-         t_formula = stringtotable(parsed_formula)
-         
-         local t_mimp_formula = implicational(t_formula)
-         
-         SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
+   if editing_state == inputCommand then
+      if key == "backspace" then
+         input_command = input_command:sub(1, input_command:len()-1)
+         text = "Type your command: " .. input_command
+      end
+
+      if key == "return" or key == "kpenter" then
+         loadstring(input_command)()
+         SequentGraph = LogicModule.getGraph()
          prepareGraphToDraw(SequentGraph)
+         inputCommand()
       end
    end
 end
 
 function love.textinput(t)
-   input_formula = input_formula .. t
-   text = "Type your formula: " .. input_formula
+   if editing_state == inputFormula then
+      input_formula = input_formula .. t
+      text = "Type your formula: " .. input_formula
+   elseif editing_state == inputCommand then
+      input_command = input_command .. t
+      text = "Type your command: " .. input_command
+   end
 end
 
 function love.load(arg)  
