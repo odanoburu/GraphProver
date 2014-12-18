@@ -135,9 +135,7 @@ function parse_input(contents)
 
    local t = lpeg.match(G, contents)
    if not t then
-      io.write("falha no reconhecimento de ", contents)
-      io.write("\n")
-      os.exit(1)
+      error({msg="falha no reconhecimento de "..contents})
    end
 
    ast = table_formula(t)

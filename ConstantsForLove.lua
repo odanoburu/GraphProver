@@ -45,5 +45,6 @@ printProofButtonName = "Print Proof"
 buttonTime = 0.15
 
 -- Editing States
-inputFormula = "InputingFormula"
-inputCommand = "InputingCommand"
+InputingFormula = "InputingFormula"
+InputingCommand = "InputingCommand"
+NoInputing = ""

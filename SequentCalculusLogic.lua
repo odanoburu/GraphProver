@@ -265,33 +265,29 @@ local function verifySideOfOperator(sequentNode, operatorNode)
    return nil 
 end
 
-local function markProvedSequent(sequentNode)
-   assert( getmetatable(sequentNode) == Node_Metatable , "markProvedSequent expects a node.")
+local function markProvedPath(sequentNode) 
+   local seq = sequentNode
 
-   local allBrachesProved = false
-
-   if sequentNode:getInformation("isAxiom") == nil then
-      local deductions = sequentNode:getEdgesOut()
-
-      for i=1, #deductions do
-         if deductions[i]:getLabel() == lblEdgeDeducao then
-            if markProvedSequent(deductions[i]:getDestino()) == false then
-               allBrachesProved = false
-            else
-               allBrachesProved = true
-            end
-         end
-      end       
-   else
-      allBrachesProved = true
+   while seq ~= nil do
+      seq:setInformation("isProved", true)
+      if seq:getEdgeIn(lblEdgeDeducao) then 
+        seq = seq:getEdgeIn(lblEdgeDeducao):getOrigem()
+      else
+        seq = nil
+      end
    end
+end
 
-   if allBrachesProved then
-      sequentNode:setInformation("isProved", true)
-      return true
-   else
-      sequentNode:setInformation("isProved", false)
-      return false
+local function markCounterExamplePath(sequentNode) 
+   local seq = sequentNode
+
+   while seq ~= nil do
+      seq:setInformation("isProved", false)
+      if seq:getEdgeIn(lblEdgeDeducao) then 
+        seq = seq:getEdgeIn(lblEdgeDeducao):getOrigem()
+      else
+        seq = nil
+      end
    end
 end
 
@@ -535,6 +531,7 @@ local function checkLoop(sequentNode)
       
       if equalLeft and equalRight and equalBracket then
          ret = true
+         markCounterExamplePath(dedSeq)
          break
       else
          if dedSeq:getEdgeIn(lblEdgeDeducao) == nil then
@@ -608,6 +605,16 @@ local function generateCounterModel(sequentNode, counterModel)
 
 end
 
+local function getInitialSequent()
+   if graph then  
+      local goalEdge = graph:getNode(lblNodeGG):getEdgeOut(lblEdgeGoal)
+      
+      if goalEdge then
+        return goalEdge:getDestino()
+      end
+   end
+end
+
 local function verifyAxiom(sequentNode)
    local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
    local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
@@ -629,6 +636,8 @@ local function verifyAxiom(sequentNode)
       sequentNode:setInformation("isExpanded", true)
       logger:info("verifyAxiom - "..sequentNode:getLabel().." is axiom")
       logger:info("verifyAxiom - "..sequentNode:getLabel().." was expanded")
+
+      markProvedPath(sequentNode)     
       return true 
    else   
       return false
@@ -854,32 +863,19 @@ end
 --- The operator node is only expanded if a sequent node were previusly selected.
 --- @param graph The graph that contains the target node.
 --- @param targetNode The node that you want to expand.
-function LogicModule.expandNode(agraph, GoalSequentNode, targetNode)
-   assert( getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
+function LogicModule.expandNode(agraph, goalSequentNode, targetNode)
+   assert(getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
 
    local typeOfNode = targetNode:getInformation("type")
-   local wasExpanded = true
 
    graph = agraph
 
-   if not GoalSequentNode:getInformation("isExpanded") then
+   if not goalSequentNode:getInformation("isExpanded") then
       if typeOfNode == opImp.graph then                 
-         graph = expandNodeImp(GoalSequentNode, targetNode)  
-      -- else
-         
-      --    wasExpanded, graph = expandNodeAtomic(GoalSequentNode, targetNode)
+         graph = expandNodeImp(goalSequentNode, targetNode)  
       end
    end
- 
-   -- if GoalSequentNode:getInformation("isExpanded") == false and wasExpanded then
-   --    GoalSequentNode:setInformation("isExpanded", true)
 
-   --    goalsList[GoalSequentNode:getLabel()]:deleteGoal() -- Ja usei esse sequente, nao guardo a lista de goals dele
-
-   --    GoalSequentNode = nil -- Ja expandiu, agora escolhe um sequente de novo.
-   -- end
-
-   --return wasExpanded, graph
    return true, graph      
 end
 
@@ -928,14 +924,6 @@ function LogicModule.expandAll(agraph)
 
    if not isAllExpanded then
       ret, graph = LogicModule.expandAll(graph)
-   else
-      local initialSequents = graph:getNode(lblNodeGG):getEdgesOut()
-
-      if initialSequents ~= nil then
-         for i=1, #initialSequents do
-            markProvedSequent(initialSequents[i]:getDestino())
-         end
-      end
    end
 
    return ret, graph 
@@ -985,7 +973,7 @@ function LogicModule.getGraph()
 end
 
 
--- API to interact from graphical interface
+-- API functions to interact from graphical interface
 local function findf(seq, form, side)
    local seqNode = finds(seq)
    local ret = nil
@@ -1043,24 +1031,29 @@ function finds(seq)
    return seqNode
 end
 
-function ileft(seq, form)
-   local seqNode = finds(seq)
-   local formNode = findf(seq, form, "esq")
-
-   graph = expandNodeImpLeft(seqNode, formNode)
-end
-
-function iright(seq, form)
-   local seqNode = finds(seq)
-   local formNode = findf(seq, form, "dir")
-
-   graph = expandNodeImpRight(seqNode, formNode)  
-end
-
 function clear()
    for i=1,#foundNodes do
       foundNodes[i]:setInformation("found", false)
    end
 end
 
+function load()
+   local f=loadfile("commands.lua")
+   f()
+end
 
+function ileft(seq, form)
+   local seqNode = finds(seq)
+   local formNode = findf(seq, form, "esq")
+
+   graph = expandNodeImpLeft(seqNode, formNode)
+   clear()
+end
+
+function iright(seq, form)
+   local seqNode = finds(seq)
+   local formNode = findf(seq, form, "dir")
+
+   graph = expandNodeImpRight(seqNode, formNode)
+   clear()
+end

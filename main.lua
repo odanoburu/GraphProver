@@ -19,8 +19,8 @@ local logger, font
 local SequentGraph, seqNode, nodeExpanding
 local isDragging, isChoosingFocus, isExpandingFormula
 local FPSCAP = 60
-local text, input_formula, inputCommand = ""
-local editing_state = ""
+local text, input_formula, input_command = ""
+local editingState = NoInputing
 
 -- Private functions
 
@@ -245,17 +245,27 @@ local function getNodeClicked()
    return nil   
 end
 
+local function proofStarted()
+   local ret = false
+   if (SequentGraph ~= nil) then
+      if (SequentGraph:getNode(lblNodeGG) ~= nil) then
+         if (SequentGraph:getNode(lblNodeGG):getEdgesOut() ~= nil) then
+            ret = true
+         end
+      end
+   end
+   return ret
+end
+
 local function expandAll()
-   if (SequentGraph ~= nil) and (SequentGraph:getNode(lblNodeGG):getEdgesOut() ~= nil) then
+   if proofStarted() then
       local ret, graph = LogicModule.expandAll(SequentGraph)                    
       SequentGraph= prepareGraphToDraw(graph)
    end
 end
 
 local function inputFormula()
-   editing_state = inputFormula
-   
-   logger:info("statistics -- Starting...")
+   editingState = InputingFormula
 
    --text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
    --input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
@@ -263,32 +273,56 @@ local function inputFormula()
    --text = "Type your formula: (B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
    --input_formula = "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
 
-   --text = "Type your formula: (A imp (A or (B)))"
-   --input_formula = "(A imp (A or (B)))"
+   text = "Type your formula: (A imp (A or (B)))"
+   input_formula = "(A imp (A or (B)))"
 
-   text = "Type your formula: "
-   input_formula = ""
+   --text = "Type your formula: "
+   --input_formula = ""
 
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
 end
 
+local function runInput()
+   local parsed_formula = parse_input(input_formula)
+   t_formula = stringtotable(parsed_formula)
+   
+   local t_mimp_formula = implicational(t_formula)
+   
+   SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
+   prepareGraphToDraw(SequentGraph)  
+end
+
 local function inputCommand()
-   editing_state = inputCommand
+   editingState = InputingCommand
 
    text = "Type your command: "
    input_command = ""
 end
 
+local function runCommand()
+   input_command = input_command:gsub("%(", "%(\"")
+   input_command = input_command:gsub("%)", "\"%)")
+   input_command = input_command:gsub(",", "\",\"")      
+   input_command = input_command:gsub(",\" ", ",\"")   
+   
+   loadstring(input_command)()
+   SequentGraph = LogicModule.getGraph()
+   prepareGraphToDraw(SequentGraph)
+   inputCommand()
+end
+
 local function expandFormula()
-   if (seqNode ~= nil) and (nodeExpanding ~= nil) then
-      local ret, graph = LogicModule.expandNode(SequentGraph, seqNode, nodeExpanding)                    
-      SequentGraph= prepareGraphToDraw(graph)
+   if proofStarted() then
+      if (nodeExpanding ~= nil) then
+         local ret, graph = LogicModule.expandNode(SequentGraph, seqNode, nodeExpanding)                    
+         SequentGraph= prepareGraphToDraw(graph)
+      end
    end
 end
 
 local function printProof()   
-   if SequentGraph ~= nil then
+   if proofStarted() then
       ret = LogicModule.printProof(SequentGraph)
 
       if ret then
@@ -511,7 +545,7 @@ function love.keypressed(key)
       inputCommand()   
    end
 
-   if editing_state == inputFormula then
+   if editingState == InputingFormula then
       if key == "backspace" then
          input_formula = input_formula:sub(1, input_formula:len()-1)
          text = "Type your formula: " .. input_formula
@@ -519,37 +553,36 @@ function love.keypressed(key)
 
       if key == "return" or key == "kpenter" then
          if input_formula ~= "" then
-            parsed_formula = parse_input(input_formula)
-            t_formula = stringtotable(parsed_formula)
-            
-            local t_mimp_formula = implicational(t_formula)
-            
-            SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
-            prepareGraphToDraw(SequentGraph)
+            local status, err = pcall(runInput)
+            if not status then
+               input_formula = err.msg
+               text = "Type your formula: " .. input_formula            
+            end   
          end
       end
    end
 
-   if editing_state == inputCommand then
+   if editingState == InputingCommand then
       if key == "backspace" then
          input_command = input_command:sub(1, input_command:len()-1)
          text = "Type your command: " .. input_command
       end
 
       if key == "return" or key == "kpenter" then
-         loadstring(input_command)()
-         SequentGraph = LogicModule.getGraph()
-         prepareGraphToDraw(SequentGraph)
-         inputCommand()
+         local status, err = pcall(runCommand)
+         if not status then
+            input_command = "fail with error: "..err.."!!! try again, please!"
+            text = "Type your command: " .. input_command            
+         end         
       end
    end
 end
 
 function love.textinput(t)
-   if editing_state == inputFormula then
+   if editingState == InputingFormula then
       input_formula = input_formula .. t
       text = "Type your formula: " .. input_formula
-   elseif editing_state == inputCommand then
+   elseif editingState == InputingCommand then
       input_command = input_command .. t
       text = "Type your command: " .. input_command
    end
