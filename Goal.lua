@@ -15,7 +15,7 @@ Goal_Metatable = { __index = Goal }
 
 
 ---   Class Constructor
---- @param leftGoals - Será uma lista de operadores que ele pode expandir na parte esquerda do sequente.
+-- @param leftGoals - Será uma lista de operadores que ele pode expandir na parte esquerda do sequente.
 function Goal:new (sequent, leftGoals, rightGoals)
    assert( getmetatable(sequent) == Node_Metatable , "Goal:new expects a Node. Sequent is not a node.")	
    

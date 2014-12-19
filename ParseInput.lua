@@ -18,6 +18,7 @@ local logger = logging.file("aux/prover-SequentCalculus%s.log", "%Y-%m-%d")
 logger:setLevel(logging.DEBUG)
 
 
+-- Parsing functions
 local function table_atom(x)
    return (string.format("\"%s\"", x))
 end
@@ -45,7 +46,7 @@ local function table_formulas(t)
    end
 end
 
-print_Goal = function (t)
+local function print_Goal(t)
    io.write("[ Goal ")
    if #t > 0 then
       print_formulas(t[1])
@@ -67,7 +68,7 @@ local function table_formula(t)
    if type(t) == "number" then 
       return(t)
    elseif type(t) == "string" then
-      return(string.format("%s", t))     
+      return(string.format("%s", t))
    elseif type(t) == "table" then 
       local s = "{ "
       for k,v in pairs(t) do
@@ -140,6 +141,8 @@ function parse_input(contents)
    return(ast)
 end
 
+-- MIMP translation functions
+
 local function fresh_atom()
    local ret = "p"..atom_count
 
@@ -153,7 +156,7 @@ end
 --               non-MIMP subformulas translated in new propostional letters
 -- @return a propositonal representation of non-MIMP (sub)formulas as string
 local function mimp(formula)
-   local formula_s = tabletostring(formula)
+   local formula_s = convert_formula_tostring(formula)
    
    if mimp_t[formula_s] then
       return mimp_t[formula_s]
@@ -189,9 +192,9 @@ local function axioms(alpha, formula)
       return set1:union(set2)
       
    elseif formula["tag"] == "and" then
-      local formula_s = tabletostring(formula)
-      local formula_esq_s = tabletostring(formula["1"])
-      local formula_dir_s = tabletostring(formula["2"])  
+      local formula_s = convert_formula_tostring(formula)
+      local formula_esq_s = convert_formula_tostring(formula["1"])
+      local formula_dir_s = convert_formula_tostring(formula["2"])  
       
       local p = mimp_t[formula_s]
 
@@ -199,9 +202,9 @@ local function axioms(alpha, formula)
       local axiom2 = parse_input(p.." imp ("..mimp_t[formula_esq_s]..")")
       local axiom3 = parse_input(p.." imp ("..mimp_t[formula_dir_s]..")")
       
-      local axiom1_t = stringtotable(axiom1)
-      local axiom2_t = stringtotable(axiom2)
-      local axiom3_t = stringtotable(axiom3)
+      local axiom1_t = convert_formula_totable(axiom1)
+      local axiom2_t = convert_formula_totable(axiom2)
+      local axiom3_t = convert_formula_totable(axiom3)
       
       local axioms_set = Set:new({axiom1_t, axiom2_t, axiom3_t})
 
@@ -211,16 +214,16 @@ local function axioms(alpha, formula)
       return set2
       
    elseif formula["tag"] == "or" then
-      local formula_s = tabletostring(formula)
-      local formula_esq_s = tabletostring(formula["1"])
-      local formula_dir_s = tabletostring(formula["2"])  
+      local formula_s = convert_formula_tostring(formula)
+      local formula_esq_s = convert_formula_tostring(formula["1"])
+      local formula_dir_s = convert_formula_tostring(formula["2"])  
       
       local q = mimp_t[formula_s]
 
       local axiom1 = parse_input(mimp_t[formula_esq_s].." imp ("..q..")")   
       local axiom2 = parse_input(mimp_t[formula_dir_s].." imp ("..q..")")
-      local axiom1_t = stringtotable(axiom1)
-      local axiom2_t = stringtotable(axiom2)
+      local axiom1_t = convert_formula_totable(axiom1)
+      local axiom2_t = convert_formula_totable(axiom2)
       local axioms_set = Set:new({axiom1_t, axiom2_t})
 
       local axioms_sub = nil
@@ -229,7 +232,7 @@ local function axioms(alpha, formula)
       for k,_ in pairs(mimp_t) do
          axioms_sub = parse_input("("..mimp_t[formula_esq_s].." imp (".. mimp_t[k]..")) imp (("..mimp_t[formula_dir_s].." imp ("..mimp_t[k]..")) imp (("..
                                      q.." imp ("..mimp_t[k].."))))")
-         axioms_sub_t = stringtotable(axioms_sub)
+         axioms_sub_t = convert_formula_totable(axioms_sub)
          axioms_sub_set:add(axioms_sub_t)
       end
 
@@ -246,17 +249,22 @@ end
 local function subformulas(formula)
    
    if formula["tag"] == "Atom" then
-      return  Set:new({tabletostring(formula)})
+      return  Set:new({convert_formula_tostring(formula)})
    else
       local sub1_set = subformulas(formula["1"])
       local sub2_set = subformulas(formula["2"])
       local sub1_u_sub2 = sub1_set:union(sub2_set)
       
-      local actual_formula = Set:new({tabletostring(formula)})
+      local actual_formula = Set:new({convert_formula_tostring(formula)})
       local subformulas_set = sub1_u_sub2:union(actual_formula)
 
       return subformulas_set
    end
+end
+
+
+local function compare_formulas_size(a, b)
+   return (string.len(a) < string.len(b))
 end
 
 
@@ -273,20 +281,64 @@ function implicational(t_formula)
       table.insert(l, k)
    end
    
-   table.sort(l, function (a,b) return (string.len(a) < string.len(b)) end)
+   table.sort(l, compare_formulas_size)
    
    for k,v in pairs(l) do
-      local new_v = mimp(stringtotable(parse_input(v)))
+      local new_v = mimp(convert_formula_totable(parse_input(v)))
       mimp_t[v] = new_v      
    end
 
    local axiom_set = axioms(t_formula, t_formula)
 
-   local s = stringtotable(parse_input(mimp_t[tabletostring(t_formula)]))
+   local s = convert_formula_totable(parse_input(mimp_t[convert_formula_tostring(t_formula)]))
    
    for k,_ in pairs(axiom_set) do
       s = {["1"] = k, ["2"] = s, ["tag"] = "imp"}
    end
    
    return s
+end
+
+-- String to Table /Table to String convertion
+
+function convert_formula_totable(s)
+   local t = {}
+   
+   if s == nil then
+      return
+   end
+   
+   for k in string.gmatch(s, "(%b[])") do
+      v1=string.match(k,"%[%s*([^=]+)=.+")
+      if v1 =="tag" then
+	 v1,v2= string.match(k,"%[%s*([^=]+)=(%S+)%s")
+	 t[v1]=v2
+      else
+	 if v1 then 
+	    v2=string.match(k,"(%b{})")
+	    if v2 then 
+	       t[v1] = convert_formula_totable(v2,client)
+	    else
+	       v2=string.match(k,"[^=]+=%s*(%S+)%s*%]")
+	       t[v1]= v2
+	    end
+	 end
+      end
+   end
+   return(t)
+end
+
+function convert_formula_tostring(t)
+
+   local s = ""
+   
+   if t["tag"] == "Atom" then
+      s = t["1"]
+   else
+      --s = convert_formula_tostring(t["1"])..t["tag"].." ("..convert_formula_tostring(t["2"])..")"
+      s = "("..convert_formula_tostring(t["1"])..") "..t["tag"].." ("..convert_formula_tostring(t["2"])..")"      
+   end
+
+   return s
+   
 end

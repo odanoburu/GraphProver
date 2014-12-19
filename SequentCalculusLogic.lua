@@ -669,11 +669,8 @@ local function verifyAxiom(sequentNode)
    end
 end
 
-local function putFormulaInFocus(sequentNode, formulaNode)
+local function putFormulaInFcus(sequentNode, formulaNode)
    local newSequentNode = createNewSequent(sequentNode)
-
-   
-   
 
 end
 

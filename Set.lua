@@ -9,8 +9,6 @@ Set = {}
 
 Set_Metatable = { __index = Set }
 
--------------------------------------------------------------------------------
-
 function Set:new (t)
    local ini = {}
 
@@ -20,19 +18,14 @@ function Set:new (t)
    
    return setmetatable( ini, Set_Metatable )
 end
-------------------------------------------------------------------------------
 
 function Set:contains(e)
    return self[e]
 end
 
--------------------------------------------------------------------------------
-
 function Set:add(e)
    self[e] = true
 end
-
--------------------------------------------------------------------------------
 
 function Set:union(set2)
    local s = Set:new()

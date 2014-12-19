@@ -25,7 +25,7 @@ local editingState = NoInputing
 -- Private functions
 
 --- Dada uma aresta, ele retorna o angulo em radianos que a aresta faz com o eixo horizontal.
---- É usada para escrever textos em cima das arestas.
+-- É usada para escrever textos em cima das arestas.
 local function getInclinacaoAresta(edge)
    local inclinacao
    local x2Maiorx1 = false
@@ -245,6 +245,8 @@ local function getNodeClicked()
    return nil   
 end
 
+-- Event actions functions
+
 local function proofStarted()
    local ret = false
    if (SequentGraph ~= nil) then
@@ -286,7 +288,7 @@ end
 
 local function runInput()
    local parsed_formula = parse_input(input_formula)
-   t_formula = stringtotable(parsed_formula)
+   t_formula = convert_formula_totable(parsed_formula)
    
    local t_mimp_formula = implicational(t_formula)
    
@@ -342,6 +344,8 @@ local function printProof()
       end
    end  
 end
+
+-- Events functions
 
 local function showInputTextEvent()
    font = love.graphics.newFont(12)
@@ -460,13 +464,13 @@ local function printProofButtonEvent()
 end
 
 --- Esta função é chamada pela love.draw.
---- A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
---- conforme o botão continuar sendo pressionado e caso o clique tenha sido em um vertice esta função:
---- 1- Ira alterar a posição de desenho do vertice, criando o efeito do drag and drop, ou;
---- 2- Ira mover o screen todo, ou ;
---- 3- Ira indicar um Sequent como foco (se isExpandingFormula for verdadeiro) , ou;
---- 4- Ira chamar a funcao que expande o noh (segundo o calculo lohgico implementado), se 
---- o foco (no do tipo Sequent) estiver definido.
+-- A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
+-- conforme o botão continuar sendo pressionado e caso o clique tenha sido em um vertice esta função:
+-- 1- Ira alterar a posição de desenho do vertice, criando o efeito do drag and drop, ou;
+-- 2- Ira mover o screen todo, ou ;
+-- 3- Ira indicar um Sequent como foco (se isExpandingFormula for verdadeiro) , ou;
+-- 4- Ira chamar a funcao que expande o noh (segundo o calculo lohgico implementado), se 
+-- o foco (no do tipo Sequent) estiver definido.
 local function dragNodeOrScreenOrSelectFocusEvent()     
 
    if love.mouse.isDown("l") and isChoosingFocus then
