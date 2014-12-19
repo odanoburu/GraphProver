@@ -1,14 +1,12 @@
---[[
-
-   Sequent Graph Module
-   Extends Node and Edge modules.
-
-   Here is defined the node estructure of the Sequent Graph.
-
-   Author: Vitor
-   Contributors: Hermann, Jefferson
-
-]]--
+-------------------------------------------------------------------------------
+--   Sequent Graph Module
+--
+--   Extends Node and Edge modules. 
+--   Here is defined the node estructure of the Sequent Graph
+--
+--   @authors: Vitor, Hermann, Jefferson
+--
+-------------------------------------------------------------------------------
 
 require "ConstantsForSequent"
 require 'Graph'

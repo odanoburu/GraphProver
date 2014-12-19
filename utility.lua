@@ -1,14 +1,12 @@
---[[
-
-   Utility Module
-
-   Contain functions that can be used by all the aplication. Normaly functions for string manipulation or for debuging.
-   This is provided by the grafic module to all others that want to use this functions.
-
-   Author: Vitor
-   Contributors: Jefferson
-
-]]--
+-------------------------------------------------------------------------------
+--   Utility Module
+--
+--   Contain functions that can be used by all the aplication. Normaly functions for string manipulation or for debuging.
+--   This is provided by the grafic module to all others that want to use this functions.
+--
+--   @authors: Vitor, Hermann, Jefferson
+--
+-------------------------------------------------------------------------------
 
 function stringtotable(s)
    local t = {}

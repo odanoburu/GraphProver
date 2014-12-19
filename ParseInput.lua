@@ -1,13 +1,11 @@
---[[
-
-   Parse Input Module
-
-   Utilitary module to parse formula input.
-
-   Author: Vitor
-   Contributor: Hermann
-
-]]--
+------------------------------------------------------------------------------
+--   Parse Input Module
+--
+--   Utilitary module to parse formula input.
+--
+--   @authors: Vitor, Hermann, Jefferson
+--
+-------------------------------------------------------------------------------
 
 require "Set"
 require "logging" 

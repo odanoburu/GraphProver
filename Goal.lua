@@ -1,25 +1,21 @@
---[[
+------------------------------------------------------------------------------
+--   Goal Module
+--
+--   This module defines ...
+--
+--   @authors: Vitor
+--
+-------------------------------------------------------------------------------
 
-   Goal Module
-
-   Author: Vitor
-]]--
-
---[[ 
-   Defining the Goal
-]]--
+--- Defining the Goal
 Goal = {}
 
---[[ 
-   Defining the Metatable
-]]--
+--- Defining the Metatable
 Goal_Metatable = { __index = Goal }
 
---[[
-   Class Constructor
-   
-   leftGoals - Será uma lista de operadores que ele pode expandir na parte esquerda do sequente.
-]]--
+
+---   Class Constructor
+--- @param leftGoals - Será uma lista de operadores que ele pode expandir na parte esquerda do sequente.
 function Goal:new (sequent, leftGoals, rightGoals)
    assert( getmetatable(sequent) == Node_Metatable , "Goal:new expects a Node. Sequent is not a node.")	
    
@@ -48,23 +44,17 @@ function Goal:deleteGoal()
    self = nil
 end
 
---[[
-   Return the sequent of the Goal
-]]--
+--- Return the sequent of the Goal
 function Goal:getSequent()
    return self.sequent
 end
 
---[[
-   Return the left side of the Goal
-]]--
+--- Return the left side of the Goal
 function Goal:getLeftSide()
    return self.leftGoals
 end
 
---[[
-   Return the right side of the Goal
-]]--
+--- Return the right side of the Goal
 function Goal:getRightSide()
    return self.rightGoals
 end

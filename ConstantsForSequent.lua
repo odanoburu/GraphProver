@@ -1,13 +1,11 @@
---[[
-
-   Constants for sequent Module
-   
-   Contains all the constants used by the Sequent Calculus Logic Module.
-
-   Author: Vitor
-   Contributors :Jefferson
-
-]]--
+-------------------------------------------------------------------------------
+--   Constants for sequent Module
+--
+--   Contains all the constants used by the Sequent Calculus Logic Module.
+--
+--   @authors: Vitor, Jefferson
+--
+-------------------------------------------------------------------------------
 
 -- Operators definitions
 opAnd = {}
