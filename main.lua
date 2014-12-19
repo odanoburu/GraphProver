@@ -224,7 +224,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   applyForces(graph)
+   --applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
@@ -249,7 +249,8 @@ local function proofStarted()
    local ret = false
    if (SequentGraph ~= nil) then
       if (SequentGraph:getNode(lblNodeGG) ~= nil) then
-         if (SequentGraph:getNode(lblNodeGG):getEdgesOut() ~= nil) then
+         if (SequentGraph:getNode(lblNodeGG):getEdgesOut() ~= nil) and
+            (#SequentGraph:getNode(lblNodeGG):getEdgesOut() ~= 0) then
             ret = true
          end
       end

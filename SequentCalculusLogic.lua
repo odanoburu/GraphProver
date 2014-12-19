@@ -510,6 +510,32 @@ local function compareBracketFormulas(sideSeq, sideSeqParent)
    return ret
 end
 
+local function verifyLoopCondition(sequentNode)
+   local ret = true
+
+   if sequentNode:getEdgeOut(lblEdgeEsq) ~= nil then
+      local leftFormulasEdges = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
+      
+      for i=1, #leftFormulasEdges do
+         local formulaNode = leftFormulasEdges[i]:getDestino()
+         local typeOfNode = formulaNode:getInformation("type")
+         if typeOfNode == opImp.graph and formulaNode:getInformation("copiedCount") == 0 then
+            ret = false
+         end
+      end
+   end
+      
+   if ret then
+      local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
+      local typeOfNode = rightFormulaNode:getInformation("type")   
+      if typeOfNode == opImp.graph then
+         ret = false
+      end
+   end
+   
+   return ret
+end
+
 local function checkLoop(sequentNode)
   
    local esqNode, dirNode, dedSeq, esqNodeAnt, dirNodeAnt
@@ -765,8 +791,13 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
    graph:addEdge(newEdgeLeft)
    
    -- Add left and right premisses as new sequent goals
-   local loopcheck1 = checkLoop(NewSequentNode1)
-   local loopcheck2 = checkLoop(NewSequentNode2)
+   local loopcheck1, loopcheck2 = false, false
+   if verifyLoopCondition(NewSequentNode1) then
+      loopcheck1 = checkLoop(NewSequentNode1)
+   end
+   if verifyLoopCondition(NewSequentNode2) then
+      loopcheck2 = checkLoop(NewSequentNode2)
+   end
    
    if not loopcheck1 and not loopcheck2 then
       if not verifyAxiom(NewSequentNode1) then
@@ -778,10 +809,13 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
       end
    else
       if loopcheck1 then 
+         logger:info("expandNodeImpLeft - check in loop found on "..NewSequentNode1:getLabel().."!!!")
          counterModel = generateCounterModel(NewSequentNode1, counterModel)
       else
+         logger:info("expandNodeImpLeft - check in loop found on "..NewSequentNode2:getLabel().."!!!")
          counterModel = generateCounterModel(NewSequentNode2, counterModel)
       end
+      goalsList = {}
    end
      
    return graph      
@@ -813,14 +847,21 @@ local function expandNodeImpRight(sequentNode, nodeOpImp)
    local newEdge3 = SequentEdge:new(""..numberEdgesLeft, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())
 
    graph:addEdge(newEdge2)
-   graph:addEdge(newEdge3)        
+   graph:addEdge(newEdge3)
 
-   if not checkLoop(NewSequentNode) then
+   local loopcheck = false
+   if verifyLoopCondition(NewSequentNode) then
+      loopcheck = checkLoop(NewSequentNode)
+   end   
+
+   if not loopcheck then
       if not verifyAxiom(NewSequentNode) then
          goalsList[NewSequentNode:getLabel()] = assembleGoalList(NewSequentNode)
       end
    else
-      counterModel = generateCounterModel(NewSequentNode, counterModel)      
+      logger:info("expandNodeImpRight - check in loop found on "..NewSequentNode:getLabel().."!!!")
+      counterModel = generateCounterModel(NewSequentNode, counterModel)
+      goalsList = {}
    end
 
    return graph     
@@ -883,10 +924,13 @@ function LogicModule.expandAll(agraph)
 
    local isAllExpanded = true
    local ret
+   local k, goal 
+   local last_kx
 
    graph = agraph               
    
    for k,goal in pairs(goalsList) do
+      last_k = k
       local seq = goal:getSequent()
 
       assert( getmetatable(seq) == Node_Metatable , "LogicModule.expandAll expects a Node")
@@ -904,13 +948,13 @@ function LogicModule.expandAll(agraph)
          if #rightSide ~= 0 then
             for _,formulaNode in pairs(rightSide) do
                ret, graph = LogicModule.expandNode(graph, seq, formulaNode)
-               --LogicModule.printProof(graph, k)
+               LogicModule.printProof(graph, k)
             end
          else
             if #leftSide ~= 0  then
                for _,formulaNode in pairs(leftSide) do
                   ret, graph = LogicModule.expandNode(graph, seq, formulaNode)
-                  --LogicModule.printProof(graph, k)                  
+                  LogicModule.printProof(graph, k)                  
                   break
                end
             end
@@ -924,6 +968,8 @@ function LogicModule.expandAll(agraph)
 
    if not isAllExpanded then
       ret, graph = LogicModule.expandAll(graph)
+   else
+     logger:info("expandAll - All sequents expanded after sequent")
    end
 
    return ret, graph 
