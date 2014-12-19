@@ -56,6 +56,7 @@ lblNodeGG = "GG"
 lblNodeEsq = "e"
 lblNodeDir = "d"
 lblNodeBrackets = "[]"
+lblNodeFocus = "{}"
 lblNodeWorld = "w"
 
 -- Side definitions

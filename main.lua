@@ -1,11 +1,11 @@
---[[
-
-   Main Module
-
-   Author: Vitor, 
-   Contributors: Marcela, Hermann, Jefferson
-
-]]--
+------------------------------------------------------------------------------
+--  Main Module
+--
+--  This module defines ...
+--
+--  @author: Vitor, Marcela, Hermann, Jefferson
+--
+-------------------------------------------------------------------------------
 
 require 'ConstantsForLove'
 require 'Utility'
@@ -224,7 +224,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   --applyForces(graph)
+   applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
@@ -608,8 +608,7 @@ function love.load(arg)
    isExpandingFormula = false
 
    -- Initialize the proof graph
-   SequentGraph = LogicModule.createGraphFromTable("empty")
-   prepareGraphToDraw(SequentGraph)
+   inputFormula()
 end
 
 function love.draw()

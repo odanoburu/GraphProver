@@ -1,9 +1,11 @@
---[[
-
-   Sequent Calculus Module
-
-   Authors: Vitor, Bruno, Hermann, Jefferson
-]]--
+-------------------------------------------------------------------------------
+--   Sequent Calculus Module
+--
+--   This module defines the ...
+--
+--   @authors: Vitor, Bruno, Hermann, Jefferson
+--
+-------------------------------------------------------------------------------
 
 require "SequentGraph"
 require "Goal"
@@ -63,18 +65,18 @@ local function createNewSequent(sequentNode)
 
 end
 
-local function assembleGoalList(sequent)
+local function assembleGoalList(sequentNode)
 
    if goalsList == nil then
       goalsList = {}
    end
    
-   assert( getmetatable(sequent) == Node_Metatable, "assembleGoalList: sequent must not be a node.")
+   assert( getmetatable(sequentNode) == Node_Metatable, "assembleGoalList: sequentNode must not be a node.")
    
    local newGoal = nil  
 
-   local esqNode = sequent:getEdgeOut(lblEdgeEsq):getDestino()
-   local dirNode = sequent:getEdgeOut(lblEdgeDir):getDestino()
+   local esqNode = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+   local dirNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
 
    local j = 1
    
@@ -106,7 +108,7 @@ local function assembleGoalList(sequent)
          end
       end
    end
-   newGoal = Goal:new (sequent, leftGoals, rightGoals)
+   newGoal = Goal:new (sequentNode, leftGoals, rightGoals)
                 
    return newGoal
 end
@@ -192,6 +194,7 @@ local function createGraphSequent(seq_tabela, letters)
    local NodeEsq = SequentNode:new(lblNodeEsq)
    local NodeDir = SequentNode:new(lblNodeDir)
    local NodeBrackets = SequentNode:new(lblNodeBrackets)
+   local NodeFocus = SequentNode:new(lblNodeFocus)
    S,L = createGraphFormula(seq_tabela, letters)
 
    local Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
@@ -199,11 +202,12 @@ local function createGraphSequent(seq_tabela, letters)
    local Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
    local Edge4 = SequentEdge:new('', NodeDir, S.root)
    local Edge5 = SequentEdge:new('', NodeDir, NodeBrackets)
+   local Edge6 = SequentEdge:new('', NodeEsq, NodeFocus)
 
-   local nodes = {NodeGG, NodeSeq, NodeDir, NodeEsq, NodeBrackets}
+   local nodes = {NodeGG, NodeSeq, NodeDir, NodeEsq, NodeBrackets, NodeFocus}
    SequentGraph:addNodes(nodes)
    SequentGraph:addNodes(S.nodes)
-   local edges = {Edge1, Edge2, Edge3, Edge4, Edge5}    
+   local edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6}    
    SequentGraph:addEdges(edges)
    SequentGraph:addEdges(S.edges)
 
@@ -213,8 +217,8 @@ local function createGraphSequent(seq_tabela, letters)
    return SequentGraph
 end
 
-local function verifySideOfSequent(originNode, targetNode)
-   edgesOut = originNode:getEdgesOut()
+local function verifySideOfSequent(sequentNode, formulaNode)
+   edgesOut = sequentNode:getEdgesOut()
 
    if edgesOut == nil then
       return false
@@ -223,7 +227,7 @@ local function verifySideOfSequent(originNode, targetNode)
    local retValues = {}
 
    for i=1, #edgesOut do
-      if edgesOut[i]:getDestino():getLabel() == targetNode:getLabel() then
+      if edgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
          return true
       end
    end
@@ -232,16 +236,11 @@ local function verifySideOfSequent(originNode, targetNode)
 end
 
 --- Verifies operator side in a sequent
---- Return "Left" if the operatorNode is in the left side of the sequentNode
---- Return "Right" if the operatorNode is in the right side of the sequentNode
---- Return "Left" if the operatorNode is in the left side of the sequentNode
---- @param sequentNode a node that the operatorNode should participate
---- @param operatorNode a node that is the logical constant focused
-local function verifySideOfOperator(sequentNode, operatorNode)
-   assert( operatorNode ~= nil , "verifySideOfOperator must be called only if operatorNode is not null.")
-   assert( getmetatable(operatorNode) == Node_Metatable , "verifySideOfOperator operatorNode must be a Node")
-   assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.") 
+local function verifySideOfOperator(sequentNode, formulaNode)
+   assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.")
    assert( getmetatable(sequentNode) == Node_Metatable , "verifySideOfOperator sequentNode must be a Node")
+   assert( formulaNode ~= nil , "verifySideOfOperator must be called only if formulaNode is not null.") 
+   assert( getmetatable(formulaNode) == Node_Metatable , "verifySideOfOperator formulaNode must be a Node")
 
    seqEdgesOutList = sequentNode:getEdgesOut()
    if seqEdgesOutList == nil then
@@ -250,13 +249,13 @@ local function verifySideOfOperator(sequentNode, operatorNode)
 
    for i=1, #seqEdgesOutList do
       if seqEdgesOutList[i]:getLabel() == lblEdgeEsq then
-         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
+         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), formulaNode) then
             return "Left"
          end
       end
 
       if seqEdgesOutList[i]:getLabel() == lblEdgeDir then
-         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
+         if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), formulaNode) then
             return "Right"
          end
       end               
@@ -325,23 +324,23 @@ local function countGraphElements()
 
 end
 
-local function printFormula(formula)
+local function printFormula(formulaNode)
    local ret = ""
    local edge, subformula = nil
 
-   local formulaNumber = formula:getLabel():sub(6,formula:getLabel():len())
+   local formulaNumber = formulaNode:getLabel():sub(6,formulaNode:getLabel():len())
 
-   if (formula:getEdgesOut() ~= nil) and (#formula:getEdgesOut() ~= 0) then
-      if formula:getLabel():sub(1,2) == lblNodeBrackets then
+   if (formulaNode:getEdgesOut() ~= nil) and (#formulaNode:getEdgesOut() ~= 0) then
+      if formulaNode:getLabel():sub(1,2) == lblNodeBrackets then
          ret = ret.."["
-         for i, edge in ipairs(formula:getEdgesOut()) do
+         for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
             ret = ret..printFormula(subformula)..","
          end
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."]"
       else
-         for i, edge in ipairs(formula:getEdgesOut()) do
+         for i, edge in ipairs(formulaNode:getEdgesOut()) do
             if edge:getLabel() == lblEdgeEsq then
                subformula = edge:getDestino()
                ret = ret.."("..printFormula(subformula)
@@ -350,7 +349,7 @@ local function printFormula(formula)
 
          ret = ret.." "..opImp.tex.."_{"..formulaNumber.."} "
 
-         for i, edge in ipairs(formula:getEdgesOut()) do
+         for i, edge in ipairs(formulaNode:getEdgesOut()) do
             if edge:getLabel() == lblEdgeDir then
                subformula = edge:getDestino()
                ret = ret..printFormula(subformula)..")"
@@ -358,8 +357,8 @@ local function printFormula(formula)
          end    
       end
    else
-      ret = formula:getLabel()
-      if formula:getLabel():sub(1,2) == lblNodeBrackets then
+      ret = formulaNode:getLabel()
+      if formulaNode:getLabel():sub(1,2) == lblNodeBrackets then
          ret = ret:sub(1, ret:len()-1)
       end
    end
@@ -368,17 +367,17 @@ local function printFormula(formula)
 
 end
 
-local function printSequent(seq, file)
+local function printSequent(sequentNode, file)
    local ret = ""
    local edge, nodeEsq, nodeDir = nil
    local deductions = {}
    local j = 1
 
-   if seq ~= nil then
+   if sequentNode ~= nil then
 
-      local seqNumber = seq:getLabel():sub(4,seq:getLabel():len())
+      local seqNumber = sequentNode:getLabel():sub(4,sequentNode:getLabel():len())
       
-      for i, edge in ipairs(seq:getEdgesOut()) do       
+      for i, edge in ipairs(sequentNode:getEdgesOut()) do       
          if edge:getLabel() == lblEdgeEsq then
             nodeEsq = edge:getDestino()
          end
@@ -386,8 +385,8 @@ local function printSequent(seq, file)
             nodeDir = edge:getDestino()
          end
          if edge:getLabel() == lblEdgeDeducao then
-            seq = edge:getDestino()
-            deductions[j] = seq
+            sequentNode = edge:getDestino()
+            deductions[j] = sequentNode
             j = j+1
          end                    
       end
@@ -670,47 +669,16 @@ local function verifyAxiom(sequentNode)
    end
 end
 
-local function expandNodeAtomic(sequentNode, node)
-   logger:debug("expandNodeAtomic: Expanding sequent "..sequentNode:getLabel().. " and formula "..node:getLabel())
+local function putFormulaInFocus(sequentNode, formulaNode)
+   local newSequentNode = createNewSequent(sequentNode)
 
-   local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
-   local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
-   local side = " "
-   local isAxiom = false
+   
+   
 
-   for i=1, #edgesLeft do
-      if edgesLeft[i]:getDestino():getLabel() == node:getLabel() then
-         side = "Left"
-         break
-      end
-   end 
-   if side == "Left" then 
-      if rightFormulaNode:getLabel() == node:getLabel() then 
-         isAxiom = true
-      end
-   end 
-   if isAxiom then
-      sequentNode:setInformation("isAxiom", true)
-      logger:debug("expandNodeAtomic: isAxiom = true")
-      return true, graph 
-   else
-      logger:debug("expandNodeAtomic: isAxiom = false")      
-      return false, graph
-   end
 end
 
--- The imp-left rule of Sequent Calculus. The rule follows de schema bellow:
--- Input sequent: \Gamma, A \to B \vDash C, [ ]
--- Output:
---   Left premiss sequent:  \Gamma, A \to B \vDash A, [C]
---   Right premiss sequent: \Gamma, B \vDash C, [ ]
---
--- @param graph
--- @param sequentNode The input sequent
--- @param nodeOpImp The formula of the input sequent that will be expanded
--- @return none (graph state is transformed)
-local function expandNodeImpLeft(sequentNode, nodeOpImp)
-   logger:debug("expandNodeImpLeft: Expanding sequent "..sequentNode:getLabel().. " and formula "..nodeOpImp:getLabel())
+local function expandNodeImpLeft(sequentNode, formulaNode)
+   logger:debug("expandNodeImpLeft: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local NewSequentNode1, seqListNodes1, seqListEdges1=createNewSequent(sequentNode)
    local NewSequentNode2, seqListNodes2, seqListEdges2=createNewSequent(sequentNode)
@@ -733,7 +701,7 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
    -- 1.0. Leave A \to B on the left, but mark it as used
    local listEdgesOut = nodeLeft1:getEdgesOut() --
    for i=1, #listEdgesOut do
-      if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
+      if listEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
          copiedCount = listEdgesOut[i]:getDestino():getInformation("copiedCount")
          copiedCount = copiedCount + 1
          listEdgesOut[i]:getDestino():setInformation("copiedCount", copiedCount)
@@ -769,7 +737,7 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
    graph:addEdge(newBracketsEdge)
 
    -- 1.2. Put A (from A \to B) on the right.
-   local newEdgeDir = SequentEdge:new("0", nodeRight1, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())   
+   local newEdgeDir = SequentEdge:new("0", nodeRight1, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())   
    graph:addEdge(newEdgeDir)
 
    
@@ -778,7 +746,7 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
    -- 2.1. Remove A \to B from the left  
    local listEdgesOut = nodeLeft2:getEdgesOut()
    for i=1, #listEdgesOut do
-      if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
+      if listEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
          copiedCount = listEdgesOut[i]:getDestino():getInformation("copiedCount")
          copiedCount = copiedCount + 1
          listEdgesOut[i]:getDestino():setInformation("copiedCount", copiedCount)
@@ -787,7 +755,7 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
    end   
 
    -- 2.2. Add B (from A \to B) on the left
-   local newEdgeLeft = SequentEdge:new(labelEdgeRemoved, nodeLeft2, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino()) 
+   local newEdgeLeft = SequentEdge:new(labelEdgeRemoved, nodeLeft2, formulaNode:getEdgeOut(lblEdgeDir):getDestino()) 
    graph:addEdge(newEdgeLeft)
    
    -- Add left and right premisses as new sequent goals
@@ -821,8 +789,8 @@ local function expandNodeImpLeft(sequentNode, nodeOpImp)
    return graph      
 end
 
-local function expandNodeImpRight(sequentNode, nodeOpImp)
-   logger:debug("expandNodeImpRight: Expanding sequent "..sequentNode:getLabel().. " and formula "..nodeOpImp:getLabel())
+local function expandNodeImpRight(sequentNode, formulaNode)
+   logger:debug("expandNodeImpRight: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local NewSequentNode, seqListNodes, seqListEdges=createNewSequent(sequentNode)
 
@@ -835,16 +803,16 @@ local function expandNodeImpRight(sequentNode, nodeOpImp)
 
    local listEdgesOut = nodeRight:getEdgesOut()
    for i=1, #listEdgesOut do
-      if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
+      if listEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
          labelEdgeRemoved = listEdgesOut[i]:getLabel()
          graph:removeEdge(listEdgesOut[i])
          break
       end
    end
-   local newEdge2 = SequentEdge:new(labelEdgeRemoved, nodeRight, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino())
+   local newEdge2 = SequentEdge:new(labelEdgeRemoved, nodeRight, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
 
    local numberEdgesLeft = #nodeLeft:getEdgesOut()
-   local newEdge3 = SequentEdge:new(""..numberEdgesLeft, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino())
+   local newEdge3 = SequentEdge:new(""..numberEdgesLeft, nodeLeft, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())
 
    graph:addEdge(newEdge2)
    graph:addEdge(newEdge3)
@@ -867,14 +835,14 @@ local function expandNodeImpRight(sequentNode, nodeOpImp)
    return graph     
 end
 
-local function expandNodeImp(sequentNode, nodeOpImp)
+local function expandNodeImp(sequentNode, formulaNode)
 
-   local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpImp)      
+   local sideOfOperator = verifySideOfOperator(sequentNode, formulaNode)      
 
    if sideOfOperator == leftSide then
-      return expandNodeImpLeft(sequentNode, nodeOpImp)
+      return expandNodeImpLeft(sequentNode, formulaNode)
    elseif sideOfOperator == rightSide then
-      return expandNodeImpRight(sequentNode, nodeOpImp)
+      return expandNodeImpRight(sequentNode, formulaNode)
    elseif sideOfOperator == nil then
       return nil
    end          
@@ -886,7 +854,7 @@ end
 
 --- Create a graph from a formula in text form.
 --- Returns a graph that represents the given formula.
---- @param formulaText - Formula in string form.
+--- @param seq_tabela - Formula in table form.
 function LogicModule.createGraphFromTable(seq_tabela)
    local letters = {}
 
@@ -902,18 +870,19 @@ end
 --- Expand a operator in a sequent.
 --- For a specific graph and a node of that graph, it expands the node if that node is an operator.
 --- The operator node is only expanded if a sequent node were previusly selected.
---- @param graph The graph that contains the target node.
---- @param targetNode The node that you want to expand.
-function LogicModule.expandNode(agraph, goalSequentNode, targetNode)
-   assert(getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
+--- @param agraph 
+--- @param sequentNode  
+--- @param formulaNode 
+function LogicModule.expandNode(agraph, sequentNode, formulaNode)
+   assert(getmetatable(formulaNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
 
-   local typeOfNode = targetNode:getInformation("type")
+   local typeOfNode = formulaNode:getInformation("type")
 
    graph = agraph
 
-   if not goalSequentNode:getInformation("isExpanded") then
+   if not sequentNode:getInformation("isExpanded") then
       if typeOfNode == opImp.graph then                 
-         graph = expandNodeImp(goalSequentNode, targetNode)  
+         graph = expandNodeImp(sequentNode, formulaNode)  
       end
    end
 
