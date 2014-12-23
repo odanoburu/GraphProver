@@ -21,6 +21,7 @@ sequentNodeCount = 0
 esqNodeCount = 0
 dirNodeCount = 0
 bracketNodeCount = 0
+focusNodeCount = 0
 
 --- Defining the SequentNode, extends Node
 SequentNode = {}
@@ -52,6 +53,9 @@ function SequentNode:new(labelNode)
    elseif labelNode == lblNodeBrackets then		
       labelNode = labelNode .. bracketNodeCount
       bracketNodeCount = bracketNodeCount + 1
+   elseif labelNode == lblNodeFocus then		
+      labelNode = labelNode .. focusNodeCount
+      focusNodeCount = focusNodeCount + 1      
    end
    
    local newNode = Node:new(labelNode)

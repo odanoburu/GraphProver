@@ -331,7 +331,15 @@ local function printFormula(formulaNode)
    local formulaNumber = formulaNode:getLabel():sub(6,formulaNode:getLabel():len())
 
    if (formulaNode:getEdgesOut() ~= nil) and (#formulaNode:getEdgesOut() ~= 0) then
-      if formulaNode:getLabel():sub(1,2) == lblNodeBrackets then
+      if formulaNode:getInformation("type") == lblNodeFocus then
+         ret = ret.."\\{"
+         for i, edge in ipairs(formulaNode:getEdgesOut()) do
+            subformula = edge:getDestino()
+            ret = ret..printFormula(subformula)..","
+         end
+         ret = ret:sub(1, ret:len()-1)
+         ret = ret.."\\}"
+      elseif formulaNode:getInformation("type") == lblNodeBrackets then
          ret = ret.."["
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
@@ -358,9 +366,14 @@ local function printFormula(formulaNode)
       end
    else
       ret = formulaNode:getLabel()
-      if formulaNode:getLabel():sub(1,2) == lblNodeBrackets then
+      if formulaNode:getInformation("type") == lblNodeBrackets then
+         ret = formulaNode:getLabel()
          ret = ret:sub(1, ret:len()-1)
       end
+      if formulaNode:getInformation("type") == lblNodeFocus then
+         ret = ret:gsub(lblNodeFocus, "\\{\\}")
+         ret = ret:sub(1, ret:len()-1)
+      end      
    end
 
    return ret
@@ -669,13 +682,119 @@ local function verifyAxiom(sequentNode)
    end
 end
 
-local function putFormulaInFcus(sequentNode, formulaNode)
-   local newSequentNode = createNewSequent(sequentNode)
+local function createBracketOrFocus(typeToCreate, sequentNode)
+   local newNode = SequentNode:new(typeToCreate)
+   graph:addNode(newNode)
+
+   local sideNode = nil
+   local edgeLabel
+   if typeToCreate == lblNodeBrackets then
+      sideNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
+      edgeLabel = "1"
+   else
+      sideNode = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+      edgeLabel = "0"
+   end
+
+   local numberOfFormulasInside = 0  
+   if sideNode:getEdgeOut(edgeLabel) ~= nil then
+      local oldNode = sideNode:getEdgeOut(edgeLabel):getDestino()
+      local copiedEdgeInsides = nil
+      
+      local listEdgesOut = oldNode:getEdgesOut()
+      for i=1, #listEdgesOut do
+         copiedEdgeInside = SequentEdge:new(""..i, newNode, listEdgesOut[i]:getDestino())
+         graph:addEdge(copiedEdgeInside)
+      end
+      numberOfFormulasInside = #oldNode:getEdgesOut()
+      graph:removeEdge(sideNode:getEdgeOut(edgeLabel))
+   end
+
+   return newNode, numberOfFormulasInside
+end
+
+local function applyFocusRule(sequentNode, formulaNode)      
+   local newSequentNode, seqListNodes, seqListEdges = createNewSequent(sequentNode)
+   graph:addNodes(seqListNodes)
+   graph:addEdges(seqListEdges)   
+   local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
+   graph:addEdge(newEdgeDed)
+
+   -- formula passada tem que estar do lado esquerdo do sequente passado
+   local found = false
+   local sequentLeftNode = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+   for i=1,#sequentLeftNode:getEdgesOut() do
+      if sequentLeftNode:getEdgesOut()[i]:getDestino():getLabel() == formulaNode:getLabel() then
+         found = true
+      end
+   end
+   
+   if found then   
+      local newFocusNode, numberOfFormulasInside = createBracketOrFocus(lblNodeFocus, newSequentNode)
+
+      local newFormulaNode = nil
+      if formulaNode:getInformation("type") == opImp.graph then
+         newFormulaNode = SequentNode:new(opImp.graph)
+         local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino()) 
+         local newEdgeDir = SequentEdge:new(lblEdgeDir, newFormulaNode, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
+         graph:addEdge(newEdgeEsq)
+         graph:addEdge(newEdgeDir)          
+      else
+         newFormulaNode = formulaNode
+      end
+      graph:addNode(newFormulaNode)
+      
+      local newEdgeFocus = SequentEdge:new(""..numberOfFormulasInside, newFocusNode, newFormulaNode)
+      graph:addEdge(newEdgeFocus)
+      
+      local newEdgeSequent = SequentEdge:new("0", sequentLeftNode, newFocusNode)
+      graph:addEdge(newEdgeSequent)      
+   end
+
+   return found
+end
+
+local function applyRestartRule(sequentNode, formulaNode)
+   local ret = false
+
+   local newSequentNode, seqListNodes, seqListEdges = createNewSequent(sequentNode)
+   graph:addNodes(seqListNodes)
+   graph:addEdges(seqListEdges)
+   local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
+   graph:addEdge(newEdgeDed)
+
+   -- Left Side
+   local sequentLeftNode = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+   graph:removeEdge(sequentLeftNode:getEdgeOut("0"))
+   local newFocusNode = SequentNode:new(lblNodeFocus)
+   graph:addNode(newFocusNode)
+   local newEdgeFocus = SequentEdge:new("0", sequentLeftNode, newFocusNode)
+   graph:addEdge(newEdgeFocus)     
+
+   -- Right Side
+   local sequentRightNode = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()   
+   local newBracketNode, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, newSequentNode)
+   local newEdgeBracket = SequentEdge:new("1", sequentRightNode, newBracketNode)
+   graph:addEdge(newEdgeBracket)
+
+   local formulaEdgesOut = newBracketNode:getEdgesOut()
+   for i=1,#formulaEdgesOut do
+      if formulaEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
+         graph:removeEdge(formulaEdgesOut[i])
+         break
+      end      
+   end
+
+   local formulaOutsideBracketEdge = newSequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
+   graph:removeEdge(formulaOutsideBracketEdge)
+
+   local edgeSequentToFormula = SequentEdge:new("0", newSequentNode:getEdgeOut(lblEdgeDir):getDestino(), formulaNode)
+   graph:addEdge(edgeSequentToFormula)   
 
 end
 
-local function expandNodeImpLeft(sequentNode, formulaNode)
-   logger:debug("expandNodeImpLeft: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
+local function applyImplyLeftRule(sequentNode, formulaNode)
+   logger:debug("applyImplyLeftRule: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local NewSequentNode1, seqListNodes1, seqListEdges1=createNewSequent(sequentNode)
    local NewSequentNode2, seqListNodes2, seqListEdges2=createNewSequent(sequentNode)
@@ -707,27 +826,13 @@ local function expandNodeImpLeft(sequentNode, formulaNode)
    end
    
    -- 1.1. Put C inside bracket. We have to create a new bracket to not loose the proof's history on graph.
+
    local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino() 
    graph:removeEdge(nodeRight1:getEdgeOut("0"))
 
-   local newNodeBrackets = SequentNode:new(lblNodeBrackets)
-   graph:addNode(newNodeBrackets)
-
-   local numberFormulasInBrackets = 0  
-   if nodeRight1:getEdgeOut("1") ~= nil then
-      local oldNodeBrackets = nodeRight1:getEdgeOut("1"):getDestino()
-      local copiedEdgeInsideBrackets = nil
-      
-      local listEdgesOut = oldNodeBrackets:getEdgesOut()
-      for i=1, #listEdgesOut do
-         copiedEdgeInsideBrackets = SequentEdge:new(""..i, newNodeBrackets, listEdgesOut[i]:getDestino())
-         graph:addEdge(copiedEdgeInsideBrackets)
-      end
-      numberFormulasInBrackets = #oldNodeBrackets:getEdgesOut()
-      graph:removeEdge(nodeRight1:getEdgeOut("1"))
-   end
-   
-   local newEdgeInsideBrackets = SequentEdge:new(""..numberFormulasInBrackets, newNodeBrackets, nodeFormulaOutsideBrackets)
+   local newNodeBrackets, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, NewSequentNode1)
+  
+   local newEdgeInsideBrackets = SequentEdge:new(""..numberOfFormulasInside, newNodeBrackets, nodeFormulaOutsideBrackets)
    graph:addEdge(newEdgeInsideBrackets)
 
    local newBracketsEdge = SequentEdge:new("1", nodeRight1, newNodeBrackets)
@@ -736,7 +841,6 @@ local function expandNodeImpLeft(sequentNode, formulaNode)
    -- 1.2. Put A (from A \to B) on the right.
    local newEdgeDir = SequentEdge:new("0", nodeRight1, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())   
    graph:addEdge(newEdgeDir)
-
    
    -- 2. Create right premiss sequent:
    
@@ -774,10 +878,10 @@ local function expandNodeImpLeft(sequentNode, formulaNode)
       end
    else
       if loopcheck1 then 
-         logger:info("expandNodeImpLeft - check in loop found on "..NewSequentNode1:getLabel().."!!!")
+         logger:info("applyImplyLeftRule - check in loop found on "..NewSequentNode1:getLabel().."!!!")
          counterModel = generateCounterModel(NewSequentNode1, counterModel)
       else
-         logger:info("expandNodeImpLeft - check in loop found on "..NewSequentNode2:getLabel().."!!!")
+         logger:info("applyImplyLeftRule - check in loop found on "..NewSequentNode2:getLabel().."!!!")
          counterModel = generateCounterModel(NewSequentNode2, counterModel)
       end
       goalsList = {}
@@ -786,8 +890,8 @@ local function expandNodeImpLeft(sequentNode, formulaNode)
    return graph      
 end
 
-local function expandNodeImpRight(sequentNode, formulaNode)
-   logger:debug("expandNodeImpRight: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
+local function applyImplyRightRule(sequentNode, formulaNode)
+   logger:debug("applyImplyRightRule: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local NewSequentNode, seqListNodes, seqListEdges=createNewSequent(sequentNode)
 
@@ -824,7 +928,7 @@ local function expandNodeImpRight(sequentNode, formulaNode)
          goalsList[NewSequentNode:getLabel()] = assembleGoalList(NewSequentNode)
       end
    else
-      logger:info("expandNodeImpRight - check in loop found on "..NewSequentNode:getLabel().."!!!")
+      logger:info("applyImplyRightRule - check in loop found on "..NewSequentNode:getLabel().."!!!")
       counterModel = generateCounterModel(NewSequentNode, counterModel)
       goalsList = {}
    end
@@ -832,14 +936,14 @@ local function expandNodeImpRight(sequentNode, formulaNode)
    return graph     
 end
 
-local function expandNodeImp(sequentNode, formulaNode)
+local function applyImplyRule(sequentNode, formulaNode)
 
    local sideOfOperator = verifySideOfOperator(sequentNode, formulaNode)      
 
    if sideOfOperator == leftSide then
-      return expandNodeImpLeft(sequentNode, formulaNode)
+      return applyImplyLeftRule(sequentNode, formulaNode)
    elseif sideOfOperator == rightSide then
-      return expandNodeImpRight(sequentNode, formulaNode)
+      return applyImplyRightRule(sequentNode, formulaNode)
    elseif sideOfOperator == nil then
       return nil
    end          
@@ -849,7 +953,7 @@ end
 
 -- Public functions
 
---- Create a graph from a formula in text form.
+--- Create a graph from a formula in table form.
 --- Returns a graph that represents the given formula.
 --- @param seq_tabela - Formula in table form.
 function LogicModule.createGraphFromTable(seq_tabela)
@@ -879,7 +983,7 @@ function LogicModule.expandNode(agraph, sequentNode, formulaNode)
 
    if not sequentNode:getInformation("isExpanded") then
       if typeOfNode == opImp.graph then                 
-         graph = expandNodeImp(sequentNode, formulaNode)  
+         graph = applyImplyRule(sequentNode, formulaNode)  
       end
    end
 
@@ -986,7 +1090,29 @@ end
 
 
 -- API functions to interact from graphical interface
-local function findf(seq, form, side)
+local function findf_f(formNode, formStr)
+   local ret = false
+   local formulaNode = nil
+   
+   if formNode:getLabel():lower() == formStr:lower() then
+      formNode:setInformation("found", true)
+      table.insert(foundNodes, formNode)
+      ret = true
+      formulaNode = formNode
+   else
+      if formNode:getInformation("type") == opImp.graph then
+         ret = findf_f(formNode:getEdgeOut(lblEdgeEsq):getDestino(), formStr)
+         formulaNode = formNode:getEdgeOut(lblEdgeEsq):getDestino()
+         if not ret then
+            ret = findf_f(formNode:getEdgeOut(lblEdgeDir):getDestino(), formStr)
+            formulaNode = formNode:getEdgeOut(lblEdgeDir):getDestino()
+         end
+      end
+   end
+   return ret, formulaNode
+end
+
+local function finds_f(seq, form, side)
    local seqNode = finds(seq)
    local ret = nil
    local formulaNode = nil
@@ -1037,7 +1163,68 @@ function finds(seq)
          break
       end
 
-      seqNode = seqNode:getEdgeOut(lblEdgeDeducao):getDestino()
+      if seqNode:getEdgeOut(lblEdgeDeducao) ~= nil then
+         seqNode = seqNode:getEdgeOut(lblEdgeDeducao):getDestino()
+      else
+         seqNode = nil
+      end
+   end
+   
+   return seqNode
+end
+
+function findf(form)
+   local goalEdge = graph:getNode(lblNodeGG):getEdgesOut()
+   local seqNode = goalEdge[1]:getDestino()
+   local found = false
+
+   while seqNode ~= nil do
+      local leftSide = seqNode:getEdgeOut(lblEdgeEsq):getDestino()
+      local rightSide = seqNode:getEdgeOut(lblEdgeDir):getDestino()
+         
+      for i=1,#leftSide:getEdgesOut() do
+         local itemNode = leftSide:getEdgesOut()[i]:getDestino()
+         if itemNode:getInformation("type") == lblNodeFocus then
+            local itemNodeEdges = itemNode:getEdgesOut()
+            for j=1,#itemNodeEdges do
+               found = findf_f(itemNodeEdges:getDestino(), form)
+               if found then
+                  break
+               end
+            end
+         else
+            found = findf_f(itemNode, form)
+            if found then
+               break
+            end
+         end         
+      end
+
+      if not found then
+         for i=1,#rightSide:getEdgesOut() do
+            local itemNode = rightSide:getEdgesOut()[i]:getDestino()
+            if itemNode:getInformation("type") == lblNodeBrackets then
+               local itemNodeEdges = itemNode:getEdgesOut()
+               for j=1,#itemNodeEdges do
+                  found = findf_f(itemNodeEdges:getDestino(), form)
+                  if found then
+                     break
+                  end
+               end
+            else
+               found = findf_f(itemNode, form)
+               if found then
+                  break
+               end
+            end            
+         end
+      end
+      
+      if seqNode:getEdgeOut(lblEdgeDeducao) ~= nil then
+         seqNode = seqNode:getEdgeOut(lblEdgeDeducao):getDestino()
+      else
+         seqNode = nil
+      end
    end
    
    return seqNode
@@ -1056,16 +1243,65 @@ end
 
 function ileft(seq, form)
    local seqNode = finds(seq)
-   local formNode = findf(seq, form, "esq")
+   local found = false
+   local focusNode = seqNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino()
+   local focusEdgesOut = focusNode:getEdgesOut()
+   local formNode = nil
+   
+   for i=1, #focusEdgesOut do
+      found, formNode = findf_f(focusEdgesOut[i]:getDestino(), form)
+      if found then
+        break
+      end
+   end
 
-   graph = expandNodeImpLeft(seqNode, formNode)
-   clear()
+   if found then
+      graph = applyImplyLeftRule(seqNode, formNode)
+      clear()
+   end   
 end
 
 function iright(seq, form)
    local seqNode = finds(seq)
-   local formNode = findf(seq, form, "dir")
+   local formNode = finds_f(seq, form, "dir")
 
-   graph = expandNodeImpRight(seqNode, formNode)
+   graph = applyImplyRightRule(seqNode, formNode)
    clear()
+end
+
+function focus(seq, form)
+   local seqNode = finds(seq)
+   local formNode = finds_f(seq, form, "esq")
+
+   local ret = applyFocusRule(seqNode, formNode)
+   if not ret then
+     error("no formula found!!!")
+   else
+     clear()
+   end
+end
+
+function restart(seq, form)
+   local seqNode = finds(seq)
+   local found = false
+   local bracketNode = seqNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino()
+   local bracketEdgesOut = bracketNode:getEdgesOut()
+   local formNode = nil
+   
+   for i=1, #bracketEdgesOut do
+      found, formNode = findf_f(bracketEdgesOut[i]:getDestino(), form)
+      if found then
+        break
+      end      
+   end
+
+   if found then
+      local ret = applyRestartRule(seqNode, formNode)
+   end
+   
+   if not ret then
+     --error(err)
+   else
+     clear()
+   end
 end
