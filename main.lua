@@ -560,7 +560,7 @@ function love.keypressed(key)
          if input_formula ~= "" then
             local status, err = pcall(runInput)
             if not status then
-               input_formula = err.msg
+               input_formula = err
                text = "Type your formula: " .. input_formula            
             end   
          end
@@ -576,7 +576,7 @@ function love.keypressed(key)
       if key == "return" or key == "kpenter" then
          local status, err = pcall(runCommand)
          if not status then
-            input_command = "fail with error: "..err.."!!! try again, please!"
+            input_command = err
             text = "Type your command: " .. input_command            
          end         
       end
