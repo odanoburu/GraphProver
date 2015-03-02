@@ -69,6 +69,19 @@ function SequentNode:new(labelNode)
    return newNode
 end
 
+function SequentNode:resetCounters()
+   edgeCount = 0
+   andNodeCount = 0
+   notNodeCount = 0
+   orNodeCount  = 0
+   implyNodeCount = 0
+   sequentNodeCount = 0
+   esqNodeCount = 0
+   dirNodeCount = 0
+   bracketNodeCount = 0
+   focusNodeCount = 0
+end
+
 SequentEdge = {}
 
 --- If label is equals to "", then a number is created acording to the origin node edgeCount field.	
@@ -100,5 +113,7 @@ function SequentEdge:new(label, origem, destino)
 
    return Edge:new(label, origem, destino)
 end
+
+
 
 

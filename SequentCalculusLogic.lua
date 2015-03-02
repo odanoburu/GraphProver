@@ -10,6 +10,7 @@
 require "SequentGraph"
 require "Goal"
 require "ConstantsForSequent"
+require 'ParseInput'
 require "logging" 
 require "logging.file"
 
@@ -23,6 +24,7 @@ local graph = nil
 local counterModel = nil
 local serializedSequent = ""
 local foundNodes = {}
+local contBracketFormulas = 0
 
 -- Private functions
 
@@ -52,6 +54,9 @@ local function createNewSequent(sequentNode)
    esqEdgesOut = nodeEsq:getEdgesOut()
    for i=1, #esqEdgesOut do
       local newEdge = SequentEdge:new(esqEdgesOut[i]:getLabel(), newNodeLeft, esqEdgesOut[i]:getDestino())
+      if esqEdgesOut[i]:getInformation("reference") ~= nil then
+         newEdge:setInformation("reference", esqEdgesOut[i]:getInformation("reference"))
+      end
       listNewEdges[#listNewEdges+1] = newEdge
    end
 
@@ -114,6 +119,7 @@ end
 local function createGraphEmpty()
 
    local SequentGraph = Graph:new ()
+   --SequentNode:resetCounters()
    
    local NodeGG = SequentNode:new(lblNodeGG)
    local nodes = {NodeGG}
@@ -133,9 +139,10 @@ local function createGraphFormula(formula_tabela,letters)
    local S1
    local nodes
    local edges
+   local NodeLetter=nil   
    local FormulaGraph = Graph:new ()
-   local NodeLetter=nil
-   
+   --SequentNode:resetCounters()   
+
    if formula_tabela.tag == "Atom" then 
       local prop_letter = formula_tabela["1"]
       for k,v in pairs(letters) do 
@@ -336,7 +343,7 @@ local function printFormula(formulaNode)
          ret = ret.."["
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
-            ret = ret..printFormula(subformula)..","
+            ret = ret..printFormula(subformula).."^"..edge:getLabel()..","
          end
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."]"
@@ -378,6 +385,7 @@ local function printSequent(sequentNode, file)
    local edge, nodeEsq, nodeDir = nil
    local deductions = {}
    local j = 1
+   local rule = ""
 
    if sequentNode ~= nil then
 
@@ -393,18 +401,27 @@ local function printSequent(sequentNode, file)
          if edge:getLabel() == lblEdgeDeducao then
             sequentNode = edge:getDestino()
             deductions[j] = sequentNode
+            rule = edge:getInformation("rule")
             j = j+1
          end                    
       end
 
       if #deductions > 0 then
-         file:write("\\infer\n")
+         file:write("\\infer["..rule.."]\n")
       end
 
       file:write("{")
       if nodeEsq ~= nil then
          for i, edge in ipairs(nodeEsq:getEdgesOut()) do
             ret = ret..printFormula(edge:getDestino())
+
+            if edge:getInformation("reference") ~= nil then
+               local atomicReference = edge:getInformation("reference")
+               local pos = edge:getInformation("pos")
+               
+               ret = ret.."^{"..edge:getInformation("reference"):getLabel().."^"..pos.."}"
+            end            
+            
             ret = ret..","
          end    
          ret = ret:sub(1, ret:len()-1)
@@ -648,10 +665,12 @@ end
 
 local function verifyAxiom(sequentNode)
    local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
+   local edgesFocus = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino():getEdgesOut()
    local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
-   local side = " "
    local isAxiom = false
 
+   -- Left formulas compared with the right formula outside bracket just in case
+   -- all of them are atomic.
    for i=1, #edgesLeft do
       if edgesLeft[i]:getDestino():getInformation("type") ~= opImp.graph and
          rightFormulaNode:getInformation("type") ~= opImp.graph then
@@ -660,8 +679,19 @@ local function verifyAxiom(sequentNode)
             break
          end
       end
-   end 
+   end
 
+   -- Same case with formulas inside focus.
+   for i=1, #edgesFocus do
+      if edgesFocus[i]:getDestino():getInformation("type") ~= opImp.graph and
+         rightFormulaNode:getInformation("type") ~= opImp.graph then
+         if edgesFocus[i]:getDestino():getLabel() == rightFormulaNode:getLabel() then
+            isAxiom = true
+            break
+         end
+      end
+   end 
+   
    if isAxiom then
       sequentNode:setInformation("isAxiom", true)
       sequentNode:setInformation("isExpanded", true)
@@ -711,22 +741,23 @@ local function applyFocusRule(sequentNode, formulaNode)
    graph:addNodes(seqListNodes)
    graph:addEdges(seqListEdges)   
    local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
+   newEdgeDed:setInformation("rule", "\\mbox{focus}")   
    graph:addEdge(newEdgeDed)
 
    local newFocusNode, numberOfFormulasInside = createBracketOrFocus(lblNodeFocus, newSequentNode)
 
    local newFormulaNode = nil
    if formulaNode:getInformation("type") == opImp.graph then
-      newFormulaNode = SequentNode:new(opImp.graph)
+      newFormulaNode = SequentNode:new(formulaNode:getInformation("type"))      
       local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino()) 
       local newEdgeDir = SequentEdge:new(lblEdgeDir, newFormulaNode, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
       graph:addEdge(newEdgeEsq)
-      graph:addEdge(newEdgeDir)          
+      graph:addEdge(newEdgeDir)
+      graph:addNode(newFormulaNode)
    else
       newFormulaNode = formulaNode
    end
-   graph:addNode(newFormulaNode)
-   
+
    local newEdgeFocus = SequentEdge:new(""..numberOfFormulasInside, newFocusNode, newFormulaNode)
    graph:addEdge(newEdgeFocus)
 
@@ -737,24 +768,45 @@ local function applyFocusRule(sequentNode, formulaNode)
    return graph
 end
 
-local function applyRestartRule(sequentNode, formulaNode)
+local function applyRestartRule(sequentNode, formulaNode, pos)
    local newSequentNode, seqListNodes, seqListEdges = createNewSequent(sequentNode)
    graph:addNodes(seqListNodes)
    graph:addEdges(seqListEdges)
    local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
+   newEdgeDed:setInformation("rule", "\\mbox{restart}")   
    graph:addEdge(newEdgeDed)
 
+   local formulaOutsideBracketEdge = newSequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
+   local newBracketNode, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, newSequentNode)
+
+   local edgeToRemove = formulaNode:getEdgeIn(pos)
+   formulaNode:deleteEdgeIn(edgeToRemove)
+   graph:removeEdge(edgeToRemove)
+   
    -- Left Side
    local sequentLeftNode = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
    graph:removeEdge(sequentLeftNode:getEdgeOut("0"))
    local newFocusNode = SequentNode:new(lblNodeFocus)
    graph:addNode(newFocusNode)
    local newEdgeFocus = SequentEdge:new("0", sequentLeftNode, newFocusNode)
-   graph:addEdge(newEdgeFocus)     
+   graph:addEdge(newEdgeFocus)
+
+   local numberOfFormulasOnTheLeft = #sequentLeftNode:getEdgesOut()
+   local listEdgesOut = sequentLeftNode:getEdgesOut()
+   for i=1, #listEdgesOut do
+      if listEdgesOut[i]:getLabel() ~= "0" then
+         if listEdgesOut[i]:getInformation("reference") == formulaNode then
+            listEdgesOut[i]:setInformation("reference", nil)
+            listEdgesOut[i]:setInformation("pos", nil)            
+         elseif listEdgesOut[i]:getInformation("reference") == nil then
+            listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
+            listEdgesOut[i]:setInformation("pos", contBracketFormulas)            
+         end         
+      end
+   end
 
    -- Right Side
    local sequentRightNode = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()   
-   local newBracketNode, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, newSequentNode)
    local newEdgeBracket = SequentEdge:new("1", sequentRightNode, newBracketNode)
    graph:addEdge(newEdgeBracket)
 
@@ -775,8 +827,10 @@ local function applyRestartRule(sequentNode, formulaNode)
       end
    end
 
-   local formulaOutsideBracketEdge = newSequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
+   local newBracketFormulaEdge = SequentEdge:new(""..contBracketFormulas, newBracketNode, formulaOutsideBracketEdge:getDestino())
+   contBracketFormulas = contBracketFormulas + 1
    graph:removeEdge(formulaOutsideBracketEdge)
+   graph:addEdge(newBracketFormulaEdge)
 
    local edgeSequentToFormula = SequentEdge:new("0", newSequentNode:getEdgeOut(lblEdgeDir):getDestino(), formulaNode)
    graph:addEdge(edgeSequentToFormula)
@@ -800,30 +854,41 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
 
    local newEdge1 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode1)
    local newEdge2 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode2)
+   newEdge1:setInformation("rule", opImp.tex.."\\mbox{-left}")
+   newEdge2:setInformation("rule", opImp.tex.."\\mbox{-left}")
+   
    graph:addEdge(newEdge1)
    graph:addEdge(newEdge2)
+
+   local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino()
 
    -- 1. Create left premiss sequent:
 
    -- 1.0. Leave A \to B on the left, but mark it as used
+   local numberOfFormulasOnTheLeft = #nodeLeft1:getEdgesOut()
    local listEdgesOut = nodeLeft1:getEdgesOut() --
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
          copiedCount = listEdgesOut[i]:getDestino():getInformation("copiedCount")
          copiedCount = copiedCount + 1
          listEdgesOut[i]:getDestino():setInformation("copiedCount", copiedCount)
-         break
+      end
+
+      if listEdgesOut[i]:getLabel() ~= "0" then
+         if listEdgesOut[i]:getInformation("reference") == nil then
+            listEdgesOut[i]:setInformation("reference", nodeFormulaOutsideBrackets)
+            listEdgesOut[i]:setInformation("pos", contBracketFormulas)
+         end
       end
    end
    
-   -- 1.1. Put C inside bracket. We have to create a new bracket to not loose the proof's history on graph.
-
-   local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino() 
+   -- 1.1. Put C inside bracket. We have to create a new bracket to not loose the proof's history on graph. 
    graph:removeEdge(nodeRight1:getEdgeOut("0"))
 
-   local newNodeBrackets, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, NewSequentNode1)
-  
-   local newEdgeInsideBrackets = SequentEdge:new(""..numberOfFormulasInside, newNodeBrackets, nodeFormulaOutsideBrackets)
+   local newNodeBrackets, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, NewSequentNode1)   
+
+   local newEdgeInsideBrackets = SequentEdge:new(""..contBracketFormulas, newNodeBrackets, nodeFormulaOutsideBrackets)
+   contBracketFormulas = contBracketFormulas + 1
    graph:addEdge(newEdgeInsideBrackets)
 
    local newBracketsEdge = SequentEdge:new("1", nodeRight1, newNodeBrackets)
@@ -835,7 +900,7 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
    
    -- 2. Create right premiss sequent:
    
-   -- 2.1. Remove A \to B from the left  
+   -- 2.1. Leave A \to B on the left, but mark it as used 
    local listEdgesOut = nodeLeft2:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
@@ -846,8 +911,13 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
       end
    end   
 
-   -- 2.2. Add B (from A \to B) on the left
-   local newEdgeLeft = SequentEdge:new(labelEdgeRemoved, nodeLeft2, formulaNode:getEdgeOut(lblEdgeDir):getDestino()) 
+   -- 2.2. Add B (from A \to B) on the left outside focus
+   local newFocusNode = createBracketOrFocus(lblNodeFocus, NewSequentNode2)
+
+   local newEdgeSequent = SequentEdge:new("0", nodeLeft2, newFocusNode)
+   graph:addEdge(newEdgeSequent)
+   
+   local newEdgeLeft = SequentEdge:new(""..(#nodeLeft2:getEdgesOut()+1), nodeLeft2, formulaNode:getEdgeOut(lblEdgeDir):getDestino()) 
    graph:addEdge(newEdgeLeft)
    
    -- Add left and right premisses as new sequent goals
@@ -891,6 +961,7 @@ local function applyImplyRightRule(sequentNode, formulaNode)
    local nodeRight = NewSequentNode:getEdgeOut(lblEdgeDir):getDestino()
    local nodeLeft = NewSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
    local newEdge1 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode)
+   newEdge1:setInformation("rule", opImp.tex.."\\mbox{-right}")
    graph:addEdge(newEdge1)      
 
    local listEdgesOut = nodeRight:getEdgesOut()
@@ -1015,8 +1086,8 @@ function LogicModule.expandAll(agraph)
                   break
                end
             end
-         end
-
+         end                 
+         
          seq:setInformation("isExpanded", true)
          logger:info("expandAll - "..k.." was expanded")        
          break
@@ -1097,7 +1168,7 @@ local function findf_sub(formNode, formStr)
    return ret, formulaNode
 end
 
-local function findf_seq(seq, form, place)
+local function findf_seq(seq, form, place, pos)
    local seqNode = finds(seq)
    local ret = nil
    local formulaNode = nil
@@ -1109,7 +1180,8 @@ local function findf_seq(seq, form, place)
 
       elseif place == lblNodeBrackets then
          local bracketNode = seqNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino()
-         listEdgesOut = bracketNode:getEdgesOut()
+         listEdgesOut = {}
+         table.insert(listEdgesOut, bracketNode:getEdgeOut(pos))
          
       elseif place == lblNodeFocus then
          local focusNode = seqNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino()
@@ -1242,8 +1314,8 @@ function findf(form)
 end
 
 function clear()
-   for i=1,#foundNodes do
-      foundNodes[i]:setInformation("found", false)
+   for i,v in ipairs(foundNodes) do
+      v:setInformation("found", false)
    end
 end
 
@@ -1260,6 +1332,7 @@ function ileft(seq, form)
    assert(formNode, "Formula have to be inside focus of the sequent!")
       
    graph = applyImplyLeftRule(seqNode, formNode)
+   LogicModule.printProof(graph)
    clear()
 end
 
@@ -1271,27 +1344,30 @@ function iright(seq, form)
    assert(formNode, "Formula have to be on the right of the sequent!")
    
    graph = applyImplyRightRule(seqNode, formNode)
+   LogicModule.printProof(graph)
    clear()
 end
 
 function focus(seq, form)
    local seqNode = finds(seq)
-   local formNode = findf_seq(seq, form, lblEdgeEsq)
+   local formNode = findf_seq(seq, form, lblEdgeEsq, nil)
 
    assert(seqNode, "Sequent not found!")
    assert(formNode, "Formula have to be on the left of the sequent!")
    
    graph = applyFocusRule(seqNode, formNode)
+   LogicModule.printProof(graph)
    clear()
 end
 
-function restart(seq, form)
+function restart(seq, form, pos)
    local seqNode = finds(seq)
-   local formNode = findf_seq(seq, form, lblNodeBrackets)
+   local formNode = findf_seq(seq, form, lblNodeBrackets, pos)
 
    assert(seqNode, "Sequent not found!")
    assert(formNode, "Formula have to be inside brackets of the sequent!")
    
-   graph = applyRestartRule(seqNode, formNode)
+   graph = applyRestartRule(seqNode, formNode, pos)
+   LogicModule.printProof(graph)
    clear()
 end

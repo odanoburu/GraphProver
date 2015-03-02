@@ -276,11 +276,11 @@ local function inputFormula()
    --text = "Type your formula: (B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
    --input_formula = "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
 
-   text = "Type your formula: (A imp (A or (B)))"
-   input_formula = "(A imp (A or (B)))"
+   --text = "Type your formula: (A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
+   --input_formula = "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
 
-   --text = "Type your formula: "
-   --input_formula = ""
+   text = "Type your formula: "
+   input_formula = ""
 
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
@@ -623,5 +623,9 @@ function love.draw()
    printProofButtonEvent()            
    drawGraphEvent(SequentGraph)
    dragNodeOrScreenOrSelectFocusEvent()         
+end
+
+function graph()
+   drawGraphEvent(SequentGraph)
 end
 

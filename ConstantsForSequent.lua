@@ -49,6 +49,7 @@ lblEdgeCounterModel = "COUNTER"
 lblEdgeAccessability = "Access"
 lblEdgeSatisfy = "sat"
 lblEdgeUnsatisfy = "unsat"
+lblFormulaReference = "ref"
 
 lblNodeGG = "GG"
 lblNodeEsq = "e"
