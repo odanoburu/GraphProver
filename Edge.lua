@@ -52,6 +52,10 @@ function Edge:getInformation(infoName)
    return self.info[infoName]
 end
 
+function Edge:getInformationTable()
+   return self.info
+end
+
 --- Return the origin node of the edge
 function Edge:getOrigem()
    return self.origem

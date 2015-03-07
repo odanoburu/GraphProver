@@ -56,6 +56,7 @@ local function createNewSequent(sequentNode)
       local newEdge = SequentEdge:new(esqEdgesOut[i]:getLabel(), newNodeLeft, esqEdgesOut[i]:getDestino())
       if esqEdgesOut[i]:getInformation("reference") ~= nil then
          newEdge:setInformation("reference", esqEdgesOut[i]:getInformation("reference"))
+         newEdge:setInformation("pos", esqEdgesOut[i]:getInformation("pos"))         
       end
       listNewEdges[#listNewEdges+1] = newEdge
    end
@@ -726,8 +727,13 @@ local function createBracketOrFocus(typeToCreate, sequentNode)
       
       local listEdgesOut = oldNode:getEdgesOut()
       for i=1, #listEdgesOut do
-         copiedEdgeInside = SequentEdge:new(""..i, newNode, listEdgesOut[i]:getDestino())
+         copiedEdgeInside = SequentEdge:new(listEdgesOut[i]:getLabel(), newNode, listEdgesOut[i]:getDestino())
          graph:addEdge(copiedEdgeInside)
+         
+         for k,info in pairs(listEdgesOut[i]:getInformationTable()) do
+            copiedEdgeInside:setInformation(k, info)
+         end
+
       end
       numberOfFormulasInside = #oldNode:getEdgesOut()
       graph:removeEdge(sideNode:getEdgeOut(edgeLabel))
@@ -779,8 +785,8 @@ local function applyRestartRule(sequentNode, formulaNode, pos)
    local formulaOutsideBracketEdge = newSequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
    local newBracketNode, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, newSequentNode)
 
-   local edgeToRemove = formulaNode:getEdgeIn(pos)
-   formulaNode:deleteEdgeIn(edgeToRemove)
+   local edgeToRemove = newBracketNode:getEdgeOut(pos)
+   newBracketNode:deleteEdgeOut(edgeToRemove)
    graph:removeEdge(edgeToRemove)
    
    -- Left Side
@@ -795,12 +801,13 @@ local function applyRestartRule(sequentNode, formulaNode, pos)
    local listEdgesOut = sequentLeftNode:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getLabel() ~= "0" then
-         if listEdgesOut[i]:getInformation("reference") == formulaNode then
+         if listEdgesOut[i]:getInformation("reference") == formulaNode and
+            listEdgesOut[i]:getInformation("pos") == pos then
             listEdgesOut[i]:setInformation("reference", nil)
             listEdgesOut[i]:setInformation("pos", nil)            
          elseif listEdgesOut[i]:getInformation("reference") == nil then
             listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
-            listEdgesOut[i]:setInformation("pos", contBracketFormulas)            
+            listEdgesOut[i]:setInformation("pos", ""..contBracketFormulas)            
          end         
       end
    end
@@ -866,7 +873,7 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
 
    -- 1.0. Leave A \to B on the left, but mark it as used
    local numberOfFormulasOnTheLeft = #nodeLeft1:getEdgesOut()
-   local listEdgesOut = nodeLeft1:getEdgesOut() --
+   local listEdgesOut = nodeLeft1:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getDestino():getLabel() == formulaNode:getLabel() then
          copiedCount = listEdgesOut[i]:getDestino():getInformation("copiedCount")
@@ -877,7 +884,7 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
       if listEdgesOut[i]:getLabel() ~= "0" then
          if listEdgesOut[i]:getInformation("reference") == nil then
             listEdgesOut[i]:setInformation("reference", nodeFormulaOutsideBrackets)
-            listEdgesOut[i]:setInformation("pos", contBracketFormulas)
+            listEdgesOut[i]:setInformation("pos", ""..contBracketFormulas)
          end
       end
    end
