@@ -136,7 +136,7 @@ local function applyForces(graph)
 
          total_kinetic_energy = total_kinetic_energy + (nodes[i]:getInformation("m") * ((nodes[i]:getInformation("Vx")^2) + (nodes[i]:getInformation("Vy")^2)))
       end
-   until total_kinetic_energy < 50000
+   until total_kinetic_energy < 80000
 end
 
 --- Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
@@ -224,7 +224,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   applyForces(graph)
+   --applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
@@ -262,7 +262,7 @@ end
 
 local function expandAll()
    if proofStarted() then
-      local ret, graph = LogicModule.expandAll(SequentGraph)                    
+      local graph = LogicModule.expandAll(SequentGraph)                    
       SequentGraph= prepareGraphToDraw(graph)
    end
 end
@@ -270,17 +270,29 @@ end
 local function inputFormula()
    editingState = InputingFormula
 
+   local ki0 = "C"
+   local ki1 = "((((D imp (C)) imp (D)) imp (D)) imp (C))"
+
+   local ki = ki1
+   local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
+   local alpha = ""
+
+   text = "Type your formula: "..alpha
+   input_formula = alpha
+
+   -- Fixed examples:
+
    --text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
    --input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
-
+  
    --text = "Type your formula: (B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
    --input_formula = "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
 
    --text = "Type your formula: (A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
    --input_formula = "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
 
-   text = "Type your formula: "
-   input_formula = ""
+   --text = "Type your formula: "
+   --input_formula = ""
 
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
