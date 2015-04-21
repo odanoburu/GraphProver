@@ -275,7 +275,7 @@ local function inputFormula()
 
    local ki = ki1
    local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
-   local alpha = ""
+   --local alpha = ""
 
    text = "Type your formula: "..alpha
    input_formula = alpha
@@ -341,18 +341,7 @@ local function printProof()
       ret = LogicModule.printProof(SequentGraph)
 
       if ret then
-         os.execute("pdflatex -output-directory=aux aux/prooftree.tex")
-         os.execute("htlatex aux/prooftree.tex '' '' -daux/"  )
-         
-         if os.capture() == "Darwin" then
-            os.execute("open aux/prooftree.html")                                        
-         elseif os.capture() == "Linux" then
-            os.execute("xdg-open aux/prooftree.html")
-         else
-            os.execute("start aux/prooftree.html")
-         end
-
-         os.execute("rm -f prooftree*")         
+         os.showProofOnBrowser()
       end
    end  
 end

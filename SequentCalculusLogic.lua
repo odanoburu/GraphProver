@@ -14,6 +14,7 @@ require 'ParseInput'
 require "logging" 
 require "logging.file"
 require "Set"
+require "Utility"
 
 local logger = logging.file("aux/prover-SequentCalculus%s.log", "%Y-%m-%d")
 logger:setLevel(logging.DEBUG)
@@ -23,9 +24,11 @@ LogicModule = {}
 local goalsList = nil
 local graph = nil
 local counterModel = nil
-local serializedSequent = ""
+--local serializedSequent = ""
 local foundNodes = {}
 local contBracketFormulas = 0
+local nstep = 0
+local sufix = 0
 
 -- Private functions
 local function copyFocusedFormulas(sequentNode)
@@ -389,21 +392,21 @@ local function printFormula(formulaNode)
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."]"
       else
-         -- for i, edge in ipairs(formulaNode:getEdgesOut()) do
-         --    if edge:getLabel() == lblEdgeEsq then
-         --       subformula = edge:getDestino()
-         --       ret = ret.."("..printFormula(subformula)
-         --    end
-         -- end    
+         for i, edge in ipairs(formulaNode:getEdgesOut()) do
+            if edge:getLabel() == lblEdgeEsq then
+               subformula = edge:getDestino()
+               ret = ret.."("..printFormula(subformula)
+            end
+         end    
 
          ret = ret.." "..opImp.tex.."_{"..formulaNumber.."} "
 
-         -- for i, edge in ipairs(formulaNode:getEdgesOut()) do
-         --    if edge:getLabel() == lblEdgeDir then
-         --       subformula = edge:getDestino()
-         --       ret = ret..printFormula(subformula)..")"
-         --    end
-         -- end    
+         for i, edge in ipairs(formulaNode:getEdgesOut()) do
+            if edge:getLabel() == lblEdgeDir then
+               subformula = edge:getDestino()
+               ret = ret..printFormula(subformula)..")"
+            end
+         end    
       end
    else
       ret = formulaNode:getLabel()
@@ -438,50 +441,51 @@ local function printSequent(sequentNode, file)
             nodeDir = edge:getDestino()
          end
          if edge:getLabel() == lblEdgeDeducao then
-            sequentNode = edge:getDestino()
-            deductions[j] = sequentNode
+            local seqDed = edge:getDestino()
+            deductions[j] = seqDed
             rule = edge:getInformation("rule")
             j = j+1
          end                    
       end
 
-      if #deductions > 0 then
-         file:write("\\infer["..rule.."]\n")
-      end
+      if not sequentNode:getInformation("wasPrinted") then
+         if #deductions > 0 then
+            file:write("\\infer["..rule.."]\n")
+         end
 
-      file:write("{")
-      if nodeEsq ~= nil then
-         for i, edge in ipairs(nodeEsq:getEdgesOut()) do
-            ret = ret..printFormula(edge:getDestino())
+         file:write("{")
+         if nodeEsq ~= nil then
+            for i, edge in ipairs(nodeEsq:getEdgesOut()) do
+               ret = ret..printFormula(edge:getDestino())
 
-            if edge:getInformation("reference") ~= nil then
-               local atomicReference = edge:getInformation("reference")
+               if edge:getInformation("reference") ~= nil then
+                  local atomicReference = edge:getInformation("reference")
+                  
+                  ret = ret.."^{"..edge:getInformation("reference"):getLabel().."}"
+               end            
                
-               ret = ret.."^{"..edge:getInformation("reference"):getLabel().."}"
-            end            
-            
+               ret = ret..","
+            end    
+            ret = ret:sub(1, ret:len()-1)
+         end
+
+         ret = ret.." "..opSeq.tex.."_{"..seqNumber.."} "
+
+         edge = nil
+         for i, edge in ipairs(nodeDir:getEdgesOut()) do
+            ret = ret..printFormula(edge:getDestino())
             ret = ret..","
-         end    
-         ret = ret:sub(1, ret:len()-1)
+         end       
+         ret = ret:sub(1, ret:len()-1)     
+
+         file:write(ret)
+         file:write("}")   
+         --serializedSequent = serializedSequent..ret.." "  
       end
 
-      ret = ret.." "..opSeq.tex.."_{"..seqNumber.."} "
-
-      edge = nil
-      for i, edge in ipairs(nodeDir:getEdgesOut()) do
-         ret = ret..printFormula(edge:getDestino())
-         ret = ret..","
-      end       
-      ret = ret:sub(1, ret:len()-1)     
-
-      file:write(ret)
-      file:write("}")   
-      serializedSequent = serializedSequent..ret.." "  
-
-
       if #deductions > 0 then
-         serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
-         serializedSequent = serializedSequent.."|"
+         --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
+         --serializedSequent = serializedSequent.."|"
          file:write("\n{\n")
 
          for i, edge in ipairs(deductions) do   
@@ -492,7 +496,9 @@ local function printSequent(sequentNode, file)
          end
 
          file:write("\n}")
-      end               
+      end
+
+      sequentNode:setInformation("wasPrinted", true)
    end
 end
 
@@ -1040,7 +1046,9 @@ end
 --- @param seq_tabela - Formula in table form.
 function LogicModule.createGraphFromTable(seq_tabela)
    local letters = {}
+   sufix = 0
 
+   
    if seq_tabela=="empty" then 
       graph = createGraphEmpty()
       return graph
@@ -1070,7 +1078,7 @@ function LogicModule.expandNode(agraph, sequentNode, formulaNode)
    return true, graph      
 end
 
-function LogicModule.expandAll(agraph)
+function LogicModule.expandAll(agraph, pstep)
 
    local isAllExpanded = true
    local k, goal, focusedFormula
@@ -1078,6 +1086,7 @@ function LogicModule.expandAll(agraph)
    graph = agraph               
    
    for k,goal in pairs(goalsList) do
+      
       local seq = goal:getSequent()
 
       if not seq:getInformation("isExpanded") then
@@ -1098,15 +1107,31 @@ function LogicModule.expandAll(agraph)
 
          table.sort(leftSide, compareFormulasDegree)
 
-         if tonumber(k:sub(4,5)) == 19 then
-           LogicModule.printProof(graph)
+         if pstep == nil then
+            nstep = 1
+         else
+            if tonumber(pstep) <= nstep then
+               nstep = 0
+               sufix = sufix + 1
+               LogicModule.printProof(graph, tostring(sufix))
+               os.showProofOnBrowser(tostring(sufix))
+               break
+            else
+               nstep = nstep + 1
+            end
+         end
+         
+         --if tonumber(k:sub(4,5)) == 19 then
+           --LogicModule.printProof(graph)
            --os.exit()
-         end          
+         --end          
 
          if not verifyAxiom(seq) then
             if checkLoop(seq) then
                -- mostrar a lista de goals nesse momento antes de esvaziar!
                goalsList = {}
+               nstep = 0
+               sufix = 0
                logger:info("expandAll - Loop found - Counter Example!")
                break
             else
@@ -1166,9 +1191,10 @@ function LogicModule.expandAll(agraph)
       end
    end
 
-   if not isAllExpanded then
-      graph = LogicModule.expandAll(graph)
+   if not isAllExpanded and nstep ~= 0 then
+      graph = LogicModule.expandAll(graph, pstep)
    else
+      nstep = 0
       logger:info("expandAll - All sequents expanded!")
    end
 
@@ -1196,8 +1222,8 @@ function LogicModule.printProof(agraph, nameSufix)
 
       printSequent(seq, file)
       
-      serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
-      serializedSequent = serializedSequent:gsub("\\to", "→")
+      --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
+      --serializedSequent = serializedSequent:gsub("\\to", "→")
       --logger:info("statistics -- Serialized sequent: "..serializedSequent)  
       --logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
       --countGraphElements()
@@ -1442,3 +1468,8 @@ function restart(seq, form)
    LogicModule.printProof(graph)
    clear()
 end
+
+function step(pstep)
+   LogicModule.expandAll(graph, pstep)
+end
+
