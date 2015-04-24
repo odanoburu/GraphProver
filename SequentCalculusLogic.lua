@@ -17,7 +17,7 @@ require "Set"
 require "Utility"
 
 local logger = logging.file("aux/prover-SequentCalculus%s.log", "%Y-%m-%d")
-logger:setLevel(logging.DEBUG)
+logger:setLevel(logging.INFO)
 
 LogicModule = {}
 
@@ -368,18 +368,25 @@ local function countGraphElements()
 
 end
 
-local function printFormula(formulaNode)
+local function printFormula(formulaNode, shortedFormula)
    local ret = ""
    local edge, subformula = nil
 
+   if shortedFormula == nil then shortedFormula = true end
+      
    local formulaNumber = formulaNode:getLabel():sub(6,formulaNode:getLabel():len())
+   local originalFormula = formulaNode:getInformation("originalFormula")
+
+   if originalFormula ~= nil then
+      formulaNumber = originalFormula:getLabel():sub(6,formulaNode:getLabel():len())
+   end
 
    if (formulaNode:getEdgesOut() ~= nil) and (#formulaNode:getEdgesOut() ~= 0) then
       if formulaNode:getInformation("type") == lblNodeFocus then
          ret = ret.."\\{"
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
-            ret = ret..printFormula(subformula)..","
+            ret = ret..printFormula(subformula, shortedFormula)..","
          end
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."\\}"
@@ -387,26 +394,30 @@ local function printFormula(formulaNode)
          ret = ret.."["
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
-            ret = ret..printFormula(subformula).."^"..edge:getLabel()..","
+            ret = ret..printFormula(subformula, shortedFormula).."^"..edge:getLabel()..","
          end
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."]"
       else
-         for i, edge in ipairs(formulaNode:getEdgesOut()) do
-            if edge:getLabel() == lblEdgeEsq then
-               subformula = edge:getDestino()
-               ret = ret.."("..printFormula(subformula)
+         if not shortedFormula then
+            for i, edge in ipairs(formulaNode:getEdgesOut()) do
+               if edge:getLabel() == lblEdgeEsq then
+                  subformula = edge:getDestino()
+                  ret = ret.."("..printFormula(subformula, shortedFormula)
+               end
             end
-         end    
+         end
 
          ret = ret.." "..opImp.tex.."_{"..formulaNumber.."} "
 
-         for i, edge in ipairs(formulaNode:getEdgesOut()) do
-            if edge:getLabel() == lblEdgeDir then
-               subformula = edge:getDestino()
-               ret = ret..printFormula(subformula)..")"
+         if not shortedFormula then
+            for i, edge in ipairs(formulaNode:getEdgesOut()) do
+               if edge:getLabel() == lblEdgeDir then
+                  subformula = edge:getDestino()
+                  ret = ret..printFormula(subformula, shortedFormula)..")"
+               end
             end
-         end    
+         end
       end
    else
       ret = formulaNode:getLabel()
@@ -428,10 +439,12 @@ local function printSequent(sequentNode, file)
    local deductions = {}
    local j = 1
    local rule = ""
+   local shortedFormula = true
 
    if sequentNode ~= nil then
 
       local seqNumber = sequentNode:getLabel():sub(4,sequentNode:getLabel():len())
+      if seqNumber == "0" then shortedFormula = false end
       
       for i, edge in ipairs(sequentNode:getEdgesOut()) do       
          if edge:getLabel() == lblEdgeEsq then
@@ -448,19 +461,27 @@ local function printSequent(sequentNode, file)
          end                    
       end
 
-      if not sequentNode:getInformation("wasPrinted") then
+      if tonumber(sequentNode:getLabel():sub(4,5)) == 59 then
+         local x = 10
+      end 
+      
+      if not sequentNode:getInformation("wasPrinted") then        
          if #deductions > 0 then
             file:write("\\infer["..rule.."]\n")
          end
 
-         file:write("{")
+         if sequentNode:getInformation("isAxiom") then
+            file:write("{\\color{red}{")
+         else            
+            file:write("{")
+         end
+         
          if nodeEsq ~= nil then
             for i, edge in ipairs(nodeEsq:getEdgesOut()) do
-               ret = ret..printFormula(edge:getDestino())
+               ret = ret..printFormula(edge:getDestino(), shortedFormula)
 
                if edge:getInformation("reference") ~= nil then
-                  local atomicReference = edge:getInformation("reference")
-                  
+                  local atomicReference = edge:getInformation("reference")                  
                   ret = ret.."^{"..edge:getInformation("reference"):getLabel().."}"
                end            
                
@@ -473,31 +494,66 @@ local function printSequent(sequentNode, file)
 
          edge = nil
          for i, edge in ipairs(nodeDir:getEdgesOut()) do
-            ret = ret..printFormula(edge:getDestino())
+            ret = ret..printFormula(edge:getDestino(), shortedFormula)
             ret = ret..","
          end       
          ret = ret:sub(1, ret:len()-1)     
 
          file:write(ret)
-         file:write("}")   
-         --serializedSequent = serializedSequent..ret.." "  
-      end
-
-      if #deductions > 0 then
-         --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
-         --serializedSequent = serializedSequent.."|"
-         file:write("\n{\n")
-
-         for i, edge in ipairs(deductions) do   
-            printSequent(deductions[i], file)
-            if #deductions > 1 then
-               file:write(" & ")
-            end                 
+         if sequentNode:getInformation("isAxiom") then
+            file:write("}}")
+         else            
+            file:write("}")
          end
 
-         file:write("\n}")
-      end
+         --serializedSequent = serializedSequent..ret.." "  
 
+         if #deductions > 0 then
+            --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
+            --serializedSequent = serializedSequent.."|"
+            file:write("\n{\n")
+
+            for i, edge in ipairs(deductions) do               
+               printSequent(deductions[i], file)
+               if #deductions > 1 and i < #deductions then
+                  file:write(" & ")
+               end                 
+            end
+
+            file:write("\n}")
+         end
+      else
+         local close = false
+         if #deductions == 0 then
+            if not sequentNode:getInformation("isAxiom") then
+               file:write("\\infer["..rule.."]\n")
+               file:write("{\\mbox{continuing} "..opSeq.tex.."_{"..seqNumber.."}}")
+               file:write("\n{}")
+               file:write("\\qquad\\qquad\r")
+            end
+         else            
+            for i, edge in ipairs(deductions) do
+               if not deductions[i]:getInformation("wasPrinted") then
+                  file:write("\\infer["..rule.."]\n")
+                  file:write("{\\mbox{continuing} "..opSeq.tex.."_{"..seqNumber.."}}")
+                  file:write("\n{\n")
+                  close = true
+               end
+               
+               printSequent(deductions[i], file)
+               if #deductions > 1 and i < #deductions then
+                  -- file:write(" & ")
+               end
+
+               if close then
+                  file:write("\n}")
+                  file:write("\\qquad\\qquad\r")               
+                  close = false
+               end
+            end
+         end         
+      end
+            
       sequentNode:setInformation("wasPrinted", true)
    end
 end
@@ -802,14 +858,20 @@ local function applyFocusRule(sequentNode, formulaNode)
    graph:addNodes(seqListNodes)
    graph:addEdges(seqListEdges)   
    local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
-   newEdgeDed:setInformation("rule", "\\mbox{focus}")   
+   if formulaNode:getInformation("type") == opImp.graph then
+
+      newEdgeDed:setInformation("rule", "\\mbox{focus}-"..opImp.tex.."_{"..formulaNode:getLabel():sub(6,formulaNode:getLabel():len()).."}")      
+   else
+      newEdgeDed:setInformation("rule", "\\mbox{focus}-"..formulaNode:getLabel())         
+   end
    graph:addEdge(newEdgeDed)
 
    local newFocusNode, numberOfFormulasInside = createBracketOrFocus(lblNodeFocus, newSequentNode)
 
    local newFormulaNode = nil
    if formulaNode:getInformation("type") == opImp.graph then
-      newFormulaNode = SequentNode:new(formulaNode:getInformation("type"))      
+      newFormulaNode = SequentNode:new(formulaNode:getInformation("type"))
+      newFormulaNode:setInformation("originalFormula", formulaNode)
       local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino()) 
       local newEdgeDir = SequentEdge:new(lblEdgeDir, newFormulaNode, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
       graph:addEdge(newEdgeEsq)
@@ -844,7 +906,7 @@ local function applyRestartRule(sequentNode, formulaNode)
    graph:addNodes(seqListNodes)
    graph:addEdges(seqListEdges)
    local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
-   newEdgeDed:setInformation("rule", "\\mbox{restart}")   
+   newEdgeDed:setInformation("rule", "\\mbox{restart}-"..formulaNode:getLabel())         
    graph:addEdge(newEdgeDed)
 
    local formulaOutsideBracketEdge = newSequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
@@ -917,9 +979,16 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
 
    local newEdge1 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode1)
    local newEdge2 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode2)
-   newEdge1:setInformation("rule", opImp.tex.."\\mbox{-left}")
-   newEdge2:setInformation("rule", opImp.tex.."\\mbox{-left}")
-   
+
+   local printFormula = nil
+   if formulaNode:getInformation("originalFormula") then
+      printFormula = formulaNode:getInformation("originalFormula")
+   else
+      printFormula = formulaNode
+   end
+   newEdge1:setInformation("rule", opImp.tex.."\\mbox{left}"..opImp.tex.."_{"..printFormula:getLabel():sub(6,formulaNode:getLabel():len()).."}")      
+   newEdge2:setInformation("rule", opImp.tex.."\\mbox{left}"..opImp.tex.."_{"..printFormula:getLabel():sub(6,formulaNode:getLabel():len()).."}")      
+      
    graph:addEdge(newEdge1)
    graph:addEdge(newEdge2)
 
@@ -998,7 +1067,9 @@ local function applyImplyRightRule(sequentNode, formulaNode)
    local nodeRight = NewSequentNode:getEdgeOut(lblEdgeDir):getDestino()
    local nodeLeft = NewSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
    local newEdge1 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode)
-   newEdge1:setInformation("rule", opImp.tex.."\\mbox{-right}")
+
+   newEdge1:setInformation("rule", opImp.tex.."\\mbox{right}"..opImp.tex.."_{"..formulaNode:getLabel():sub(6,formulaNode:getLabel():len()).."}")      
+   
    graph:addEdge(newEdge1)      
 
    local listEdgesOut = nodeRight:getEdgesOut()
@@ -1078,6 +1149,15 @@ function LogicModule.expandNode(agraph, sequentNode, formulaNode)
    return true, graph      
 end
 
+local function printGoalsList()
+   logger:info("GoalsList:")   
+   for k,v in pairs(goalsList) do
+      if not goalsList[k]:getSequent():getInformation("isExpanded") then
+         logger:info(k)
+      end      
+   end
+end
+
 function LogicModule.expandAll(agraph, pstep)
 
    local isAllExpanded = true
@@ -1115,16 +1195,18 @@ function LogicModule.expandAll(agraph, pstep)
                sufix = sufix + 1
                LogicModule.printProof(graph, tostring(sufix))
                os.showProofOnBrowser(tostring(sufix))
+               printGoalsList()
                break
             else
                nstep = nstep + 1
             end
          end
          
-         --if tonumber(k:sub(4,5)) == 19 then
+         if tonumber(k:sub(4,5)) == 59 then
+            local x = 10
            --LogicModule.printProof(graph)
            --os.exit()
-         --end          
+         end          
 
          if not verifyAxiom(seq) then
             if checkLoop(seq) then
@@ -1215,6 +1297,7 @@ function LogicModule.printProof(agraph, nameSufix)
       local seq = goalEdge[1]:getDestino()
 
       file:write("\\documentclass[landscape]{article}\n\n")
+      file:write("\\usepackage{color}\n")
       file:write("\\usepackage{proof}\n")
       file:write("\\usepackage{qtree}\n\n")
       file:write("\\begin{document}\n")
