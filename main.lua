@@ -188,7 +188,7 @@ local function drawGraphEvent(graph)
            elseif node:getInformation("isProved") == false then 
               love.graphics.setColor(255, 0, 0) -- Red circle
            elseif node:getInformation("isProved") == true then 
-              love.graphics.setColor(0, 255, 0) -- Green circle           
+              love.graphics.setColor(0, 0, 255) -- Blue circle           
            end
            node:setInformation("isSelected", false)           
          end
@@ -196,11 +196,14 @@ local function drawGraphEvent(graph)
          if node:getInformation("found") == true then 
             love.graphics.setColor(255, 255, 0) -- Yellow circle
          end         
+
+         if node:getPositionX() ~= nil then
+            love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
+            love.graphics.setColor(0, 0, 0, 99) -- Black 99%
+            love.graphics.circle("line", node:getPositionX(), node:getPositionY(), 6)
+            love.graphics.print(node:getLabel(), node:getPositionX() - 10, node:getPositionY() - circleSeparation , 0, escalaLetraVertice, escalaLetraVertice )
+         end
          
-         love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
-         love.graphics.setColor(0, 0, 0, 99) -- Black 99%
-         love.graphics.circle("line", node:getPositionX(), node:getPositionY(), 6)
-         love.graphics.print(node:getLabel(), node:getPositionX() - 10, node:getPositionY() - circleSeparation , 0, escalaLetraVertice, escalaLetraVertice )
          i = i + 1
       end
    end
@@ -216,9 +219,11 @@ local function drawGraphEvent(graph)
          local x1, y1 = edge:getOrigem():getPosition()
          local x2, y2 = edge:getDestino():getPosition()
          love.graphics.line(x1, y1, x2, y2)
-         
-         inclinacao = getInclinacaoAresta(edge)
-         love.graphics.print(edge:getLabel(), (x1 + x2)/2 , (y1 + y2)/2  , inclinacao, escalaLetraAresta, escalaLetraAresta )
+
+         if x1 ~= nil and y1 ~= nil and x2 ~= nil and y2 ~= nil then
+            inclinacao = getInclinacaoAresta(edge)
+            love.graphics.print(edge:getLabel(), (x1 + x2)/2 , (y1 + y2)/2  , inclinacao, escalaLetraAresta, escalaLetraAresta )
+         end
          
          i = i + 1
       end
@@ -275,7 +280,7 @@ local function inputFormula()
 
    local ki = ki1
    local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
-   --local alpha = ""
+--   local alpha = ""
 
    text = "Type your formula: "..alpha
    input_formula = alpha

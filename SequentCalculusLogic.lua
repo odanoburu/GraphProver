@@ -108,7 +108,7 @@ local function createNewSequent(sequentNode)
    return nodeSeqNew,listNewNodes,listNewEdges
 end
 
-local function assembleGoalList(sequentNode)
+local function generateNewGoal(sequentNode)
 
    if goalsList == nil then
       goalsList = {}
@@ -252,7 +252,7 @@ local function createGraphSequent(seq_tabela, letters)
 
 
    goalsList={}
-   goalsList[NodeSeq:getLabel()] = assembleGoalList(NodeSeq)
+   goalsList[NodeSeq:getLabel()] = {goal = generateNewGoal(NodeSeq), weight = 1}
 
    local focusedFormulas = Set:new()
    NodeSeq:setInformation("focusedFormulas", focusedFormulas)
@@ -394,7 +394,7 @@ local function printFormula(formulaNode, shortedFormula)
          ret = ret.."["
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
-            ret = ret..printFormula(subformula, shortedFormula).."^"..edge:getLabel()..","
+            ret = ret..printFormula(subformula, shortedFormula).."," --"^{"..edge:getLabel().."},"
          end
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."]"
@@ -433,7 +433,7 @@ local function printFormula(formulaNode, shortedFormula)
 
 end
 
-local function printSequent(sequentNode, file)
+local function printSequent(sequentNode, file, pprintAll)
    local ret = ""
    local edge, nodeEsq, nodeDir = nil
    local deductions = {}
@@ -442,7 +442,7 @@ local function printSequent(sequentNode, file)
    local shortedFormula = true
 
    if sequentNode ~= nil then
-
+      
       local seqNumber = sequentNode:getLabel():sub(4,sequentNode:getLabel():len())
       if seqNumber == "0" then shortedFormula = false end
       
@@ -460,21 +460,29 @@ local function printSequent(sequentNode, file)
             j = j+1
          end                    
       end
-
-      if tonumber(sequentNode:getLabel():sub(4,5)) == 59 then
-         local x = 10
-      end 
-      
-      if not sequentNode:getInformation("wasPrinted") then        
+     
+      if not sequentNode:getInformation("wasPrinted") or pprintAll then        
          if #deductions > 0 then
             file:write("\\infer["..rule.."]\n")
          end
 
          if sequentNode:getInformation("isAxiom") then
+            file:write("{\\color{blue}{")
+         else            
+            file:write("{")
+         end
+
+         if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
             file:write("{\\color{red}{")
          else            
             file:write("{")
          end
+
+         if sequentNode:getInformation("repetition") then
+            file:write("{\\color{green}{")
+         else            
+            file:write("{")
+         end          
          
          if nodeEsq ~= nil then
             for i, edge in ipairs(nodeEsq:getEdgesOut()) do
@@ -506,6 +514,18 @@ local function printSequent(sequentNode, file)
             file:write("}")
          end
 
+         if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
+            file:write("}}")
+         else            
+            file:write("}")
+         end
+
+         if sequentNode:getInformation("repetition") then
+            file:write("}}")
+         else            
+            file:write("}")
+         end           
+
          --serializedSequent = serializedSequent..ret.." "  
 
          if #deductions > 0 then
@@ -514,7 +534,7 @@ local function printSequent(sequentNode, file)
             file:write("\n{\n")
 
             for i, edge in ipairs(deductions) do               
-               printSequent(deductions[i], file)
+               printSequent(deductions[i], file, pprintAll)
                if #deductions > 1 and i < #deductions then
                   file:write(" & ")
                end                 
@@ -540,7 +560,7 @@ local function printSequent(sequentNode, file)
                   close = true
                end
                
-               printSequent(deductions[i], file)
+               printSequent(deductions[i], file, pprintAll)
                if #deductions > 1 and i < #deductions then
                   -- file:write(" & ")
                end
@@ -556,6 +576,24 @@ local function printSequent(sequentNode, file)
             
       sequentNode:setInformation("wasPrinted", true)
    end
+end
+
+local function logGoalsList()
+   logger:info("GoalsList:")   
+   for k,v in pairs(goalsList) do
+      if not goalsList[k].goal:getSequent():getInformation("isExpanded") then
+         logger:info("seq: "..k.."; weight: "..goalsList[k].weight)
+      end      
+   end
+end
+
+local function resetGoalsWeight(pweight)
+
+   local k, goalEntry
+   
+   for k,goalEntry in pairs(goalsList) do
+      goalEntry.weight = pweight
+   end   
 end
 
 local function degreeOfFormula(formulaNode)
@@ -577,37 +615,7 @@ local function compareFormulasDegree(formulaA, formulaB)
   return countFormulaB > countFormulaA
 end
 
-local function compareSideFormulas(sideSeq, sideSeqParent)
-
-   local edgeSeqParent
-   local formulaSeq
-   local formulasSeqParent = {}
-   local ret = true
-   local i = 0   
-
-   for _, edgeSeqParent in ipairs(sideSeqParent:getEdgesOut()) do
-      if edgeSeqParent:getDestino():getInformation("type") ~= lblNodeBrackets then
-         i = i + 1
-         formulasSeqParent[i] = edgeSeqParent:getDestino()
-      end      
-   end
-
-   local setOfFormulas = Set:new(formulasSeqParent)
-
-   for _, edgeSeq in ipairs(sideSeq:getEdgesOut()) do
-      formulaSeq = edgeSeq:getDestino()
-      if formulaSeq:getInformation("type") ~= lblNodeBrackets then
-         if not setOfFormulas:contains(formulaSeq) then
-            ret = false
-            break
-         end
-      end
-   end
-
-   return ret
-end
-
-local function compareBracketFormulas(sideSeq, sideSeqParent)
+local function compareSequentsFormulas(sideSeq, sideSeqParent)
   
    local edgeSeqParent
    local formulaSeq
@@ -615,21 +623,77 @@ local function compareBracketFormulas(sideSeq, sideSeqParent)
    local ret = true
    local i = 0   
 
-   for _, edgeSeqParent in ipairs(sideSeqParent:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino():getEdgesOut()) do
-      i = i + 1
-      formulasSeqParent[i] = edgeSeqParent:getDestino()
-   end
+   if sideSeqParent:getEdgesOut() == nil then
+      formulasSeqParent = {}
+   else      
+      for _, edgeSeqParent in ipairs(sideSeqParent:getEdgesOut()) do
+         if edgeSeqParent:getDestino():getInformation("type") ~= lblNodeFocus and
+            edgeSeqParent:getDestino():getInformation("type") ~= lblNodeBrackets then
 
-   local setOfFormulas = Set:new(formulasSeqParent)
-
-   for _, edgeSeq in ipairs(sideSeq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino():getEdgesOut()) do
-      formulaSeq = edgeSeq:getDestino()
-      if not setOfFormulas:contains(formulaSeq) then
-         ret = false
-         break
+               local formulaNode = nil
+               local ref = ""
+               
+               if edgeSeqParent:getDestino():getInformation("originalFormula") ~= nil then
+                  formulaNode = edgeSeqParent:getDestino():getInformation("originalFormula")
+                  local leftNodeParent = sideSeqParent:getEdgeIn("0"):getDestino()
+                  for _, edgeLeftParent in ipairs(leftNodeParent:getEdgesOut()) do
+                     if edgeLeftParent:getDestino() == formulaNode then
+                        ref = edgeLeftParent:getInformation("reference"):getLabel()
+                     end
+                  end
+               else
+                  formulaNode = edgeSeqParent:getDestino()
+                  if edgeSeqParent:getInformation("reference") ~= nil then
+                     ref = edgeSeqParent:getInformation("reference"):getLabel()
+                  end                  
+               end               
+               
+               i = i + 1         
+               formulasSeqParent[i] = formulaNode:getLabel()..ref
+         end         
       end
    end
+   
+   if sideSeq:getEdgesOut() == nil then
+      if formulasSeqParent == nil then
+         ret = true
+      else
+         ret = false
+      end      
+   else
+      local setOfFormulas = Set:new(formulasSeqParent)
+      
+      for _, edgeSeq in ipairs(sideSeq:getEdgesOut()) do
+         if edgeSeq:getDestino():getInformation("type") ~= lblNodeFocus and
+            edgeSeq:getDestino():getInformation("type") ~= lblNodeBrackets then
 
+               local formulaNode = nil
+               local ref = ""
+               
+               if edgeSeq:getDestino():getInformation("originalFormula") ~= nil then
+                  formulaNode = edgeSeq:getDestino():getInformation("originalFormula")
+                  local leftNode = sideSeq:getEdgeIn("0"):getDestino()
+                  for _, edgeLeft in ipairs(leftNode:getEdgesOut()) do
+                     if edgeLeft:getDestino() == formulaNode then
+                        ref = edgeLeft:getInformation("reference"):getLabel()
+                     end
+                  end
+               else
+                  formulaNode = edgeSeq:getDestino()
+                  if edgeSeq:getInformation("reference") ~= nil then
+                     ref = edgeSeq:getInformation("reference"):getLabel()
+                  end                  
+               end                
+            
+               formulaSeq = formulaNode:getLabel()..ref
+               if not setOfFormulas:contains(formulaSeq) then
+                  ret = false
+                  break
+               end
+         end         
+      end
+   end
+   
    return ret
 end
 
@@ -669,7 +733,7 @@ local function checkLoop(sequentNode)
   
    local esqNode, dirNode, dedSeq, esqNodeAnt, dirNodeAnt
    local ret = false
-   local equalLeft, equalRight, equalBracket
+   local equalLeft, equalRight, equalFocus, equalBracket
 
    if isExpandable(sequentNode) then
       esqNode = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
@@ -681,12 +745,17 @@ local function checkLoop(sequentNode)
          esqNodeAnt = dedSeq:getEdgeOut(lblEdgeEsq):getDestino()
          dirNodeAnt = dedSeq:getEdgeOut(lblEdgeDir):getDestino()
 
-         equalLeft = compareSideFormulas(esqNode, esqNodeAnt)      
-         equalRight = compareSideFormulas(dirNode, dirNodeAnt)
-         equalBracket = compareBracketFormulas(sequentNode, dedSeq)
-         
-         if equalLeft and equalRight and equalBracket then
+         equalLeft = compareSequentsFormulas(esqNode, esqNodeAnt)      
+         equalRight = compareSequentsFormulas(dirNode, dirNodeAnt)
+         equalFocus = compareSequentsFormulas(sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino(),
+                                                dedSeq:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino())         
+         equalBracket = compareSequentsFormulas(sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino(),
+                                                dedSeq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino())
+                  
+         if equalLeft and equalRight and equalFocus and equalBracket then
             ret = true
+            sequentNode:setInformation("repetition", true)
+            dedSeq:setInformation("repetition", true)
             markCounterExamplePath(dedSeq)
             break
          else
@@ -891,7 +960,8 @@ local function applyFocusRule(sequentNode, formulaNode)
    local focusedFormulas = newSequentNode:getInformation("focusedFormulas")
    focusedFormulas:add(formulaNode)   
 
-   goalsList[newSequentNode:getLabel()] = assembleGoalList(newSequentNode)
+   local lweight = goalsList[sequentNode:getLabel()].weight
+   goalsList[newSequentNode:getLabel()] = {goal = generateNewGoal(newSequentNode), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
    logger:info("applyFocusRule - "..sequentNode:getLabel().." was expanded")       
    
@@ -954,8 +1024,9 @@ local function applyRestartRule(sequentNode, formulaNode)
 
    restartedFormulas = newSequentNode:getInformation("restartedFormulas")
    restartedFormulas:add(formulaNode)  
-   
-   goalsList[newSequentNode:getLabel()] = assembleGoalList(newSequentNode)
+
+   local lweight = goalsList[sequentNode:getLabel()].weight
+   goalsList[newSequentNode:getLabel()] = {goal = generateNewGoal(newSequentNode), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
    logger:info("applyRestartRule - "..sequentNode:getLabel().." was expanded")       
    
@@ -1047,9 +1118,9 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
    leftExpandedFormulas = NewSequentNode2:getInformation("leftExpandedFormulas")
    leftExpandedFormulas:add(formulaNode)   
    
-   
-   goalsList[NewSequentNode1:getLabel()] = assembleGoalList(NewSequentNode1)   
-   goalsList[NewSequentNode2:getLabel()] = assembleGoalList(NewSequentNode2)
+   local lweight = goalsList[sequentNode:getLabel()].weight
+   goalsList[NewSequentNode1:getLabel()] = {goal = generateNewGoal(NewSequentNode1), weight = lweight}   
+   goalsList[NewSequentNode2:getLabel()] = {goal = generateNewGoal(NewSequentNode2), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
    logger:info("applyImplyLeftRule - "..sequentNode:getLabel().." was expanded")
 
@@ -1088,7 +1159,8 @@ local function applyImplyRightRule(sequentNode, formulaNode)
    graph:addEdge(newEdge2)
    graph:addEdge(newEdge3)
 
-   goalsList[NewSequentNode:getLabel()] = assembleGoalList(NewSequentNode)
+   local lweight = goalsList[sequentNode:getLabel()].weight
+   goalsList[NewSequentNode:getLabel()] = {goal = generateNewGoal(NewSequentNode), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
    logger:info("applyImplyRightRule - "..sequentNode:getLabel().." was expanded")          
 
@@ -1149,141 +1221,145 @@ function LogicModule.expandNode(agraph, sequentNode, formulaNode)
    return true, graph      
 end
 
-local function printGoalsList()
-   logger:info("GoalsList:")   
-   for k,v in pairs(goalsList) do
-      if not goalsList[k]:getSequent():getInformation("isExpanded") then
-         logger:info(k)
-      end      
-   end
-end
-
-function LogicModule.expandAll(agraph, pstep)
+function LogicModule.expandAll(agraph, pstep, sequentNode)
 
    local isAllExpanded = true
-   local k, goal, focusedFormula
+   local k, goalEntry, focusedFormula
+
+   if sequentNode then
+      resetGoalsWeight(0)
+      goalsList[sequentNode:getLabel()].weight = 1
+   end
 
    graph = agraph               
    
-   for k,goal in pairs(goalsList) do
+   for k,goalEntry in pairs(goalsList) do
+
+      if goalEntry.weight == 1 then
       
-      local seq = goal:getSequent()
+         local seq = goalEntry.goal:getSequent()
 
-      if not seq:getInformation("isExpanded") then
-         logger:info("expandAll - Expanding seq "..k)
-         
-         isAllExpanded = false
+         if not seq:getInformation("isExpanded") then
+            logger:info("expandAll - Expanding seq "..k)
+            
+            isAllExpanded = false
 
-         local formulaNode = nil
-         local focusedFormulas = nil
-         local restartedFormulas = nil
-         local leftExpandedFormula = nil
-         local newSeq = nil
-         local leftSide = goal:getLeftSide()
-         local rightSide = goal:getRightSide()
-         local expanded = false
-         local restarted = false
-         local edgesInFocus, edgesInLeft, edgesInBracket, restartedAtom
+            local formulaNode = nil
+            local focusedFormulas = nil
+            local restartedFormulas = nil
+            local leftExpandedFormula = nil
+            local newSeq = nil
+            local leftSide = goalEntry.goal:getLeftSide()
+            local rightSide = goalEntry.goal:getRightSide()
+            local expanded = false
+            local restarted = false
+            local edgesInFocus, edgesInLeft, edgesInBracket, restartedAtom
 
-         table.sort(leftSide, compareFormulasDegree)
+            table.sort(leftSide, compareFormulasDegree)
 
-         if pstep == nil then
-            nstep = 1
-         else
-            if tonumber(pstep) <= nstep then
-               nstep = 0
-               sufix = sufix + 1
-               LogicModule.printProof(graph, tostring(sufix))
-               os.showProofOnBrowser(tostring(sufix))
-               printGoalsList()
-               break
+            if pstep == nil then
+               nstep = 1
             else
-               nstep = nstep + 1
-            end
-         end
-         
-         if tonumber(k:sub(4,5)) == 59 then
-            local x = 10
-           --LogicModule.printProof(graph)
-           --os.exit()
-         end          
-
-         if not verifyAxiom(seq) then
-            if checkLoop(seq) then
-               -- mostrar a lista de goals nesse momento antes de esvaziar!
-               goalsList = {}
-               nstep = 0
-               sufix = 0
-               logger:info("expandAll - Loop found - Counter Example!")
-               break
-            else
-               formulaNode = seq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
-               if formulaNode:getInformation("type") == opImp.graph then
-                  applyImplyRightRule(seq, formulaNode)
+               if tonumber(pstep) <= nstep then
+                  nstep = 0
+                  --sufix = sufix + 1
+                  --LogicModule.printProof(graph, tostring(sufix))
+                  --os.showProofOnBrowser(tostring(sufix))
+                  --logGoalsList()
+                  break
                else
-                  focusedFormulas = seq:getInformation("focusedFormulas")
-                  newSeq = seq                  
-                  for _,edgesInLeft in ipairs(seq:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()) do
-                     if edgesInLeft:getLabel() ~= "0" then
-                        formulaNode = edgesInLeft:getDestino()
-                        rightFormulaNode = seq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
-                        if (edgesInLeft:getInformation("reference") == nil or edgesInLeft:getInformation("reference") == rightFormulaNode) and
-                        not focusedFormulas[formulaNode] then
-                           _, newSeq, focusedFormula = applyFocusRule(newSeq, formulaNode)
-                           expanded = true
-                        end
-                     end
-                  end                  
-
-                  if not expanded then
-                     leftExpandedFormulas = seq:getInformation("leftExpandedFormulas")
-                     for _,edgesInFocus in ipairs(seq:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino():getEdgesOut()) do
-                        formulaNode = edgesInFocus:getDestino()
-                        if not leftExpandedFormulas[formulaNode] and formulaNode:getInformation("type") == opImp.graph then                           
-                           applyImplyLeftRule(seq, formulaNode)
-                           seq:setInformation("isExpanded", true)
-                           logger:info("expandAll - "..seq:getLabel().." was expanded")
-
-                           expanded = true
-                           break                                                                                   
-                        end
-                     end
-                     
-                     if not expanded then                        
-                        restartedFormulas = seq:getInformation("restartedFormulas")
-                        for _,edgesInBracket in ipairs(seq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino():getEdgesOut()) do
-                           formulaNode = edgesInBracket:getDestino()
-                           
-                           for _,restartedAtom in ipairs(restartedFormulas) do                              
-                              if (formulaNode == restartedAtom) then
-                                 restarted = true
-                              end
-                           end
-
-                           if not restarted then
-                              applyRestartRule(seq, formulaNode)
-                              break
-                           end                           
-                        end
-                     end                     
-                  end
+                  nstep = nstep + 1
                end
             end
-         end        
-      end
+            
+            if tonumber(k:sub(4)) == 8 then
+               local x = 10
+               --LogicModule.printProof(graph)
+               --os.exit()
+            end          
+
+            if not verifyAxiom(seq) then
+               if checkLoop(seq) then
+                  -- mostrar a lista de goals nesse momento antes de esvaziar!
+                  goalsList = {}
+                  nstep = 0            
+                  logger:info("expandAll - Loop found - Counter Example!")
+                  break
+               else
+                  formulaNode = seq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
+                  if formulaNode:getInformation("type") == opImp.graph then
+                     applyImplyRightRule(seq, formulaNode)
+                  else
+                     focusedFormulas = seq:getInformation("focusedFormulas")
+                     newSeq = seq                  
+                     for _,edgesInLeft in ipairs(seq:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()) do
+                        if edgesInLeft:getLabel() ~= "0" then
+                           formulaNode = edgesInLeft:getDestino()
+                           rightFormulaNode = seq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
+                           if (edgesInLeft:getInformation("reference") == nil or edgesInLeft:getInformation("reference") == rightFormulaNode) and
+                           not focusedFormulas[formulaNode] then
+                              _, newSeq, focusedFormula = applyFocusRule(newSeq, formulaNode)
+                              expanded = true
+                           end
+                        end
+                     end                  
+
+                     if not expanded then
+                        leftExpandedFormulas = seq:getInformation("leftExpandedFormulas")
+                        for _,edgesInFocus in ipairs(seq:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino():getEdgesOut()) do
+                           formulaNode = edgesInFocus:getDestino()
+                           if not leftExpandedFormulas[formulaNode] and formulaNode:getInformation("type") == opImp.graph then                           
+                              applyImplyLeftRule(seq, formulaNode)
+                              seq:setInformation("isExpanded", true)
+                              logger:info("expandAll - "..seq:getLabel().." was expanded")
+
+                              expanded = true
+                              break                                                                                   
+                           end
+                        end
+                        
+                        if not expanded then                        
+                           restartedFormulas = seq:getInformation("restartedFormulas")
+                           for _,edgesInBracket in ipairs(seq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino():getEdgesOut()) do
+                              formulaNode = edgesInBracket:getDestino()
+                              
+                              for _,restartedAtom in ipairs(restartedFormulas) do                              
+                                 if (formulaNode == restartedAtom) then
+                                    restarted = true
+                                 end
+                              end
+
+                              if not restarted then
+                                 applyRestartRule(seq, formulaNode)
+                                 break
+                              end                           
+                           end
+                        end                     
+                     end
+                  end
+               end
+            end        
+         end
+      end      
    end
 
    if not isAllExpanded and nstep ~= 0 then
       graph = LogicModule.expandAll(graph, pstep)
    else
       nstep = 0
+      --if tonumber(pstep) > nstep then
+         sufix = sufix + 1
+         LogicModule.printProof(graph, tostring(sufix))
+         os.showProofOnBrowser(tostring(sufix))
+         logGoalsList()
+      --end
       logger:info("expandAll - All sequents expanded!")
    end
 
    return graph 
 end
 
-function LogicModule.printProof(agraph, nameSufix)
+function LogicModule.printProof(agraph, nameSufix, pprintAll)
    graph = agraph
 
    if nameSufix == nil then nameSufix = "" end
@@ -1303,7 +1379,7 @@ function LogicModule.printProof(agraph, nameSufix)
       file:write("\\begin{document}\n")
       file:write("$$\n")
 
-      printSequent(seq, file)
+      printSequent(seq, file, pprintAll)
       
       --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
       --serializedSequent = serializedSequent:gsub("\\to", "→")
@@ -1552,7 +1628,34 @@ function restart(seq, form)
    clear()
 end
 
+function run()
+   LogicModule.expandAll(graph)
+end
+
+function run_seq(seq)
+   local seqNode = finds(seq)
+
+   assert(seqNode, "Sequent not found!")
+   
+   LogicModule.expandAll(graph, nil, seqNode)
+   clear()   
+end
+
 function step(pstep)
    LogicModule.expandAll(graph, pstep)
 end
 
+function step_seq(pstep, seq)
+   local seqNode = finds(seq)
+
+   assert(seqNode, "Sequent not found!")
+   
+   LogicModule.expandAll(graph, pstep, seqNode)
+   clear()   
+end
+
+function print_all()
+   LogicModule.printProof(graph, "", true)
+   os.showProofOnBrowser()   
+   clear()   
+end
