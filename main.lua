@@ -278,9 +278,9 @@ local function inputFormula()
    local ki0 = "C"
    local ki1 = "((((D imp (C)) imp (D)) imp (D)) imp (C))"
 
-   local ki = ki1
+   local ki = ki0
    local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
---   local alpha = ""
+   local alpha = ""
 
    text = "Type your formula: "..alpha
    input_formula = alpha

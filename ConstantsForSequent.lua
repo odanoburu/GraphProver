@@ -58,6 +58,11 @@ lblNodeBrackets = "[]"
 lblNodeFocus = "{}"
 lblNodeWorld = "w"
 
+lblRuleFocus = "focus"
+lblRuleImplyLeft = "left"
+lblRuleImplyRight = "right"
+lblRuleRestart = "restart"
+
 -- Side definitions
 leftSide = "Left"
 rightSide = "Right"
