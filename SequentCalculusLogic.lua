@@ -16,7 +16,7 @@ require "logging.file"
 require "Set"
 require "Utility"
 
-local logger = logging.file("aux/prover-SequentCalculus%s.log", "%Y-%m-%d")
+local logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
 logger:setLevel(logging.INFO)
 
 LogicModule = {}
@@ -832,38 +832,41 @@ local function checkLoop(sequentNode)
    local ret = false
    local equalLeft, equalRight, equalFocus, equalBracket
 
-   if not isExpandable(sequentNode) then
-      esqNode = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
-      dirNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
+   esqNode = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+   dirNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
 
+   if sequentNode:getEdgeIn(lblEdgeDeducao) == nil then
+      dedSeq = nil
+   else
       dedSeq = sequentNode:getEdgeIn(lblEdgeDeducao):getOrigem()
+   end
 
-      while dedSeq ~= nil do     
-         esqNodeAnt = dedSeq:getEdgeOut(lblEdgeEsq):getDestino()
-         dirNodeAnt = dedSeq:getEdgeOut(lblEdgeDir):getDestino()
+   while dedSeq ~= nil do     
+      esqNodeAnt = dedSeq:getEdgeOut(lblEdgeEsq):getDestino()
+      dirNodeAnt = dedSeq:getEdgeOut(lblEdgeDir):getDestino()
 
-         equalLeft = compareSequentsFormulas(esqNode, esqNodeAnt)      
-         equalRight = compareSequentsFormulas(dirNode, dirNodeAnt)
-         equalFocus = compareSequentsFormulas(sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino(),
-                                                dedSeq:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino())         
-         equalBracket = compareSequentsFormulas(sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino(),
-                                                dedSeq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino())
-                  
-         if equalLeft and equalRight and equalFocus and equalBracket then
-            ret = true
-            sequentNode:setInformation("repetition", true)
-            dedSeq:setInformation("repetition", true)
-            markCounterExamplePath(dedSeq)
-            break
+      equalLeft = compareSequentsFormulas(esqNode, esqNodeAnt)      
+      equalRight = compareSequentsFormulas(dirNode, dirNodeAnt)
+      equalFocus = compareSequentsFormulas(sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino(),
+                                           dedSeq:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino())         
+      equalBracket = compareSequentsFormulas(sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino(),
+                                             dedSeq:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("1"):getDestino())
+      
+      if equalLeft and equalRight and equalFocus and equalBracket then
+         ret = true
+         sequentNode:setInformation("repetition", true)
+         dedSeq:setInformation("repetition", true)
+         markCounterExamplePath(dedSeq)
+         break
+      else
+         if dedSeq:getEdgeIn(lblEdgeDeducao) == nil then
+            dedSeq = nil
          else
-            if dedSeq:getEdgeIn(lblEdgeDeducao) == nil then
-               dedSeq = nil
-            else
-               dedSeq = dedSeq:getEdgeIn(lblEdgeDeducao):getOrigem()
-            end
+            dedSeq = dedSeq:getEdgeIn(lblEdgeDeducao):getOrigem()
          end
       end
    end
+
    
    return ret
 end
@@ -1386,25 +1389,33 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
             end          
 
             if not verifyAxiom(seq) then
-               if checkLoop(seq) then
-                  -- mostrar a lista de goals nesse momento antes de esvaziar!
-                  goalsList = {}
-                  nstep = 0            
-                  logger:info("expandAll - Loop found - Counter Example!")
-                  break
-               else
+               -- if checkLoop(seq) then
+               --    -- mostrar a lista de goals nesse momento antes de esvaziar!
+               --    goalsList = {}
+               --    nstep = 0            
+               --    logger:info("expandAll - Loop found - Counter Example!")
+               --    break
+               -- else
                   local ret, rule, formulaNode = isExpandable(seq)
 
-                  if rule == lblRuleImplyRight then
-                     applyImplyRightRule(seq, formulaNode)
-                  elseif rule == lblRuleFocus then
-                     applyFocusRule(seq, formulaNode)
-                  elseif rule == lblRuleImplyLeft then
-                     applyImplyLeftRule(seq, formulaNode)
-                  elseif rule == lblRuleRestart then
-                     applyRestartRule(seq, formulaNode)
+                  if ret then
+                     if rule == lblRuleImplyRight then
+                        applyImplyRightRule(seq, formulaNode)
+                     elseif rule == lblRuleFocus then
+                        applyFocusRule(seq, formulaNode)
+                     elseif rule == lblRuleImplyLeft then
+                        applyImplyLeftRule(seq, formulaNode)
+                     elseif rule == lblRuleRestart then
+                        applyRestartRule(seq, formulaNode)
+                     end                                    
+                  else
+                     --goalsList[seq:getLabel()] = nil
+                     goalsList = {}
+                     nstep = 0
+                     logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
+                     break                     
                   end                  
-                end
+--               end               
             end        
          end
       end      

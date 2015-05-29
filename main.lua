@@ -275,13 +275,20 @@ end
 local function inputFormula()
    editingState = InputingFormula
 
+   -- local ki0 = "C"
+   -- local ki1 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
+   -- local ki2 = "((((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1.."))"
+
    local ki0 = "C"
-   local ki1 = "((((D imp (C)) imp (D)) imp (D)) imp (C))"
+   local ki1 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
+   local ki2 = "(((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1..")"
 
-   local ki = ki0
+
+   local ki = ki2
    local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
-   local alpha = ""
+   --local alpha = ""
 
+   logger:info("inputFormula - alpha: "..alpha)
    text = "Type your formula: "..alpha
    input_formula = alpha
 
@@ -306,8 +313,9 @@ end
 local function runInput()
    local parsed_formula = parse_input(input_formula)
    t_formula = convert_formula_totable(parsed_formula)
-   
-   local t_mimp_formula = implicational(t_formula)
+
+   local t_mimp_formula = t_formula
+--   local t_mimp_formula = implicational(t_formula)
    
    SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
    prepareGraphToDraw(SequentGraph)  
@@ -606,7 +614,7 @@ function love.load(arg)
    end
 
    -- Log control
-   logger = logging.file("aux/prover-main%s.log", "%Y-%m-%d")
+   logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
    logger:setLevel(logging.DEBUG)
 
    -- Love initial configuration

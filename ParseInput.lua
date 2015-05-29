@@ -14,8 +14,8 @@ require "logging.file"
 local lpeg = require "lpeg"
 local atom_count = 0
 local mimp_t = Set:new()
-local logger = logging.file("aux/prover-SequentCalculus%s.log", "%Y-%m-%d")
-logger:setLevel(logging.DEBUG)
+local logger = logging.file("aux/prover%s.log", "%Y-%m-%d")
+logger:setLevel(logging.INFO)
 
 
 -- Parsing functions
@@ -288,7 +288,10 @@ function implicational(t_formula)
 
    local axiom_set = axioms(t_formula, t_formula)
 
-   local s = convert_formula_totable(parse_input(mimp_t[convert_formula_tostring(t_formula)]))
+   local convertedFormula = mimp_t[convert_formula_tostring(t_formula)]
+   logger:info("implicational - Converted Formula: "..convertedFormula)
+   
+   local s = convert_formula_totable(parse_input(convertedFormula))
    
    for k,_ in pairs(axiom_set) do
       s = {["1"] = k, ["2"] = s, ["tag"] = "imp"}
@@ -333,7 +336,6 @@ function convert_formula_tostring(t)
    if t["tag"] == "Atom" then
       s = t["1"]
    else
-      --s = convert_formula_tostring(t["1"])..t["tag"].." ("..convert_formula_tostring(t["2"])..")"
       s = "("..convert_formula_tostring(t["1"])..") "..t["tag"].." ("..convert_formula_tostring(t["2"])..")"      
    end
 
