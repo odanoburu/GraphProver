@@ -284,11 +284,10 @@ local function inputFormula()
    local ki2 = "(((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1..")"
 
 
-   local ki = ki2
+   local ki = ki1
    local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
-   --local alpha = ""
+   local alpha = ""
 
-   logger:info("inputFormula - alpha: "..alpha)
    text = "Type your formula: "..alpha
    input_formula = alpha
 
@@ -303,9 +302,15 @@ local function inputFormula()
    --text = "Type your formula: (A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
    --input_formula = "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
 
-   --text = "Type your formula: "
-   --input_formula = ""
+   --text = "Type your formula: (((p11 or (p12)) and (p21 or (p22))) and (p31 or (p32))) imp ((((((p11 and (p21)) or (p31 and (p21))) or (p31 and (p11))) or (p12 and (p22))) or (p32 and (p22))) or (p32 and (p12)))"
+   --input_formula = "(((p11 or (p12)) and (p21 or (p22))) and (p31 or (p32))) imp ((((((p11 and (p21)) or (p31 and (p21))) or (p31 and (p11))) or (p12 and (p22))) or (p32 and (p22))) or (p32 and (p12)))"
 
+   --text = "Type your formula: (q imp (p imp (p))) imp (p imp (q imp (p)))"
+   --input_formula = "(q imp (p imp (p))) imp (p imp (q imp (p)))"
+
+   text = "Type your formula: (q imp (p)) imp (q imp (p))"
+   input_formula = "(q imp (p)) imp (q imp (p))"
+   
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
 end
@@ -314,8 +319,9 @@ local function runInput()
    local parsed_formula = parse_input(input_formula)
    t_formula = convert_formula_totable(parsed_formula)
 
-   local t_mimp_formula = t_formula
---   local t_mimp_formula = implicational(t_formula)
+--   local t_mimp_formula = t_formula
+   local t_mimp_formula = implicational(t_formula)
+   logger:info("inputFormula - alpha: "..convert_formula_tostring(t_mimp_formula))
    
    SequentGraph = LogicModule.createGraphFromTable(t_mimp_formula)
    prepareGraphToDraw(SequentGraph)  

@@ -154,10 +154,10 @@ end
 --               non-MIMP subformulas translated in new propostional letters
 -- @return a propositonal representation of non-MIMP (sub)formulas as string
 local function mimp(formula)
-   local formula_s = convert_formula_tostring(formula)
+   local s_formula = convert_formula_tostring(formula)
    
-   if mimp_t[formula_s] then
-      return mimp_t[formula_s]
+   if mimp_t[s_formula] then
+      return mimp_t[s_formula]
    else
       if formula["tag"] == "Atom" then
          return formula["1"]
@@ -190,11 +190,11 @@ local function axioms(alpha, formula)
       return set1:union(set2)
       
    elseif formula["tag"] == "and" then
-      local formula_s = convert_formula_tostring(formula)
+      local s_formula = convert_formula_tostring(formula)
       local formula_esq_s = convert_formula_tostring(formula["1"])
       local formula_dir_s = convert_formula_tostring(formula["2"])  
       
-      local p = mimp_t[formula_s]
+      local p = mimp_t[s_formula]
 
       local axiom1 = parse_input(mimp_t[formula_esq_s].." imp ("..mimp_t[formula_dir_s].." imp ("..p.."))")
       local axiom2 = parse_input(p.." imp ("..mimp_t[formula_esq_s]..")")
@@ -212,11 +212,11 @@ local function axioms(alpha, formula)
       return set2
       
    elseif formula["tag"] == "or" then
-      local formula_s = convert_formula_tostring(formula)
+      local s_formula = convert_formula_tostring(formula)
       local formula_esq_s = convert_formula_tostring(formula["1"])
       local formula_dir_s = convert_formula_tostring(formula["2"])  
       
-      local q = mimp_t[formula_s]
+      local q = mimp_t[s_formula]
 
       local axiom1 = parse_input(mimp_t[formula_esq_s].." imp ("..q..")")   
       local axiom2 = parse_input(mimp_t[formula_dir_s].." imp ("..q..")")
@@ -272,6 +272,7 @@ end
 -- @return a translated formula in table format 
 function implicational(t_formula)
 
+   local s_formula = convert_formula_tostring(t_formula)
    local subformulas_set = subformulas(t_formula)
 
    local l = {}
@@ -281,26 +282,25 @@ function implicational(t_formula)
    
    table.sort(l, compare_formulas_size)
    
-   for k,v in pairs(l) do
+   for _,v in ipairs(l) do
       local new_v = mimp(convert_formula_totable(parse_input(v)))
       mimp_t[v] = new_v      
    end
 
    local axiom_set = axioms(t_formula, t_formula)
-
-   local convertedFormula = mimp_t[convert_formula_tostring(t_formula)]
-   logger:info("implicational - Converted Formula: "..convertedFormula)
    
-   local s = convert_formula_totable(parse_input(convertedFormula))
+   local alpha = convert_formula_totable(parse_input(mimp_t[s_formula]))
    
    for k,_ in pairs(axiom_set) do
-      s = {["1"] = k, ["2"] = s, ["tag"] = "imp"}
+      local s_k = convert_formula_tostring(k)
+      local s_alpha = convert_formula_tostring(alpha)
+      alpha = {["1"] = k, ["2"] = alpha, ["tag"] = "imp"}
    end
    
-   return s
+   return alpha
 end
 
--- String to Table /Table to String convertion
+-- String to Table/Table to String convertion functions
 
 function convert_formula_totable(s)
    local t = {}

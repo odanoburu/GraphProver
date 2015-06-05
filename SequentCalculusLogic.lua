@@ -1007,17 +1007,17 @@ end
 local function findFormulaInBracket(nodeBrackets, formulaNode)
    local formulasInsideBracketEdges = nodeBrackets:getEdgesOut()
    local posFormulaInBracket = ""
-   local formulaInBracket = nil
+   local formulaInBracketEdge = nil
 
    for i=1,#formulasInsideBracketEdges do
       if formulasInsideBracketEdges[i]:getDestino() == formulaNode then
-         formulaInBracket = formulasInsideBracketEdges[i]
+         formulaInBracketEdge = formulasInsideBracketEdges[i]
          posFormulaInBracket = formulasInsideBracketEdges[i]:getLabel()
          break
       end
    end
 
-   return posFormulaInBracket
+   return formulaInBracketEdge
 end
 
 local function applyFocusRule(sequentNode, formulaNode)
@@ -1092,24 +1092,26 @@ local function applyRestartRule(sequentNode, formulaNode)
    graph:addEdge(newEdgeFocus)
 
    -- Copy bracket formulas different from the right formula
-   for _, bracketEdge in ipairs(newBracketNode:getEdgesOut()) do
-      if bracketEdge ~= formulaNode then
-         copyMarkedFormula(sequentNode, bracketEdge:getDestino())
-      end      
-   end
+   -- for _, bracketEdge in ipairs(newBracketNode:getEdgesOut()) do
+   --    if bracketEdge:getDestino() ~= formulaNode then
+   --       copyMarkedFormula(sequentNode, bracketEdge:getDestino())
+   --    end      
+   -- end
 
-   local posFormulaInBracket = findFormulaInBracket(newBracketNode, formulaNode)   
+   local formulaInBracketEdge = findFormulaInBracket(newBracketNode, formulaNode)
+   local formulaOutsideInBracketEdge = findFormulaInBracket(newBracketNode, formulaOutsideBracketEdge:getDestino())
 
    local listEdgesOut = sequentLeftNode:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getLabel() ~= "0" then
-         if listEdgesOut[i]:getInformation("reference") == nil and posFormulaInBracket == "" then
-            listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
-         elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
-            listEdgesOut[i]:setInformation("reference", nil)                      
-         elseif listEdgesOut[i]:getDestino():getInformation("originalFormula") == nil then
-            listEdgesOut[i]:setInformation("reference", nil)                                  
-         end         
+         -- if listEdgesOut[i]:getInformation("reference") == nil and formulaInBracketEdge == nil then
+         --    listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
+         -- elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
+         --    listEdgesOut[i]:setInformation("reference", nil)                      
+         -- elseif listEdgesOut[i]:getDestino():getInformation("originalFormula") == nil then
+         --    listEdgesOut[i]:setInformation("reference", nil)                                  
+         -- end
+         listEdgesOut[i]:setInformation("reference", nil)
       end
    end   
 
@@ -1118,15 +1120,15 @@ local function applyRestartRule(sequentNode, formulaNode)
    local newEdgeBracket = SequentEdge:new("1", sequentRightNode, newBracketNode)
    graph:addEdge(newEdgeBracket)
 
-   if posFormulaInBracket == "" then
+   if formulaOutsideInBracketEdge == nil then
       local newBracketFormulaEdge = SequentEdge:new(""..contBracketFormulas, newBracketNode, formulaOutsideBracketEdge:getDestino())
       contBracketFormulas = contBracketFormulas + 1
       graph:addEdge(newBracketFormulaEdge)
    end
    
    graph:removeEdge(formulaOutsideBracketEdge)
-
-   graph:removeEdge(newBracketNode:getEdgeOut(posFormulaInBracket))
+   graph:removeEdge(formulaInBracketEdge)
+   
    local edgeSequentToFormula = SequentEdge:new("0", newSequentNode:getEdgeOut(lblEdgeDir):getDestino(), formulaNode)
    graph:addEdge(edgeSequentToFormula)
   
@@ -1181,7 +1183,7 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
    graph:removeEdge(nodeRight1:getEdgeOut("0"))
    
    local formulasInsideBracketEdges = newNodeBrackets:getEdgesOut()
-   local posFormulaInBracket = findFormulaInBracket(newNodeBrackets, nodeFormulaOutsideBrackets)
+   local formulaInBracketEdge = findFormulaInBracket(newNodeBrackets, nodeFormulaOutsideBrackets)
 
    -- 1. Create left premiss sequent:
 
@@ -1196,7 +1198,7 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
    end
    
    -- 1.1. Put C inside bracket.
-   if posFormulaInBracket == "" then
+   if formulaInBracketEdge == nil then
       local newEdgeInsideBrackets = SequentEdge:new(""..contBracketFormulas, newNodeBrackets, nodeFormulaOutsideBrackets)
       contBracketFormulas = contBracketFormulas + 1
       graph:addEdge(newEdgeInsideBrackets)
@@ -1382,7 +1384,7 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                end
             end
             
-            if tonumber(k:sub(4)) == 28 then
+            if tonumber(k:sub(4)) == 132 then
                local x = 10
                --LogicModule.printProof(graph)
                --os.exit()

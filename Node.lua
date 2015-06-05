@@ -230,9 +230,9 @@ function Node:deleteEdgeOut(edge)
 
    local isEdgeDeleted = false
    local positionOfTheEdge = nil
-   local numEdges = #edges
+   local numEdges = #edgesOut
    
-   for i=1, #edgesOut do
+   for i=1, numEdges do
       if edgesOut[i]:getOrigem():getLabel() == edge:getOrigem():getLabel() and edgesOut[i]:getDestino():getLabel() == edge:getDestino():getLabel()then
 	 -- achei a aresta
 	 edgesOut[i] = nil			
@@ -250,11 +250,11 @@ function Node:deleteEdgeOut(edge)
    
    if isEdgeDeleted then
       -- nao é do final
-      for i = positionOfTheEdge, #edgesOut do
+      for i = positionOfTheEdge, numEdges do
 	 edgesOut[i] = edgesOut[i+1]
 	 edgesOut[i+1] = nil
 	 
-	 if i+1 == #edgesOut then
+	 if i+1 == numEdges then
 	    -- chegamos no final
 	    return true
 	 end
@@ -269,9 +269,9 @@ function Node:deleteEdgeIn(edge)
 
    local isEdgeDeleted = false
    local positionOfTheEdge = nil
-   local numEdges = #edges
+   local numEdges = #edgesIn
    
-   for i=1, #edgesIn do
+   for i=1, numEdges do
       if edgesIn[i]:getOrigem():getLabel() == edge:getOrigem():getLabel() and edgesIn[i]:getDestino():getLabel() == edge:getDestino():getLabel()then
 	 -- achei a aresta
 	 edgesIn[i] = nil			
@@ -289,11 +289,11 @@ function Node:deleteEdgeIn(edge)
    
    if isEdgeDeleted then
       -- nao é do final
-      for i = positionOfTheEdge, #edgesIn do
+      for i = positionOfTheEdge, numEdges do
 	 edgesIn[i] = edgesIn[i+1]
 	 edgesIn[i+1] = nil
 	 
-	 if i+1 == #edgesIn then
+	 if i+1 == numEdges then
 	    -- chegamos no final
 	    return true
 	 end
