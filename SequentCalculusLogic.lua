@@ -807,7 +807,7 @@ local function isExpandable(sequentNode)
          end         
 
          local i = #edgesFormulasInsideBracket
-         while i > 1 do 
+         while i >= 1 do 
             logger:info("isExpandable - "..sequentNode:getLabel().." Inside Bracket: "..edgesFormulasInsideBracket[i]:getDestino():getLabel())
             if not restartedFormulas:contains(edgesFormulasInsideBracket[i]:getDestino()) then
                logger:info("isExpandable - "..sequentNode:getLabel().." Restarted Formulas não contém "..edgesFormulasInsideBracket[i]:getDestino():getLabel())
@@ -1101,6 +1101,8 @@ local function applyRestartRule(sequentNode, formulaNode)
    local formulaInBracketEdge = findFormulaInBracket(newBracketNode, formulaNode)
    local formulaOutsideInBracketEdge = findFormulaInBracket(newBracketNode, formulaOutsideBracketEdge:getDestino())
 
+   local restartedFormulas = newSequentNode:getInformation("restartedFormulas")
+   
    local listEdgesOut = sequentLeftNode:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getLabel() ~= "0" then
@@ -1111,7 +1113,24 @@ local function applyRestartRule(sequentNode, formulaNode)
          -- elseif listEdgesOut[i]:getDestino():getInformation("originalFormula") == nil then
          --    listEdgesOut[i]:setInformation("reference", nil)                                  
          -- end
-         listEdgesOut[i]:setInformation("reference", nil)
+
+         --listEdgesOut[i]:setInformation("reference", nil)
+
+         if listEdgesOut[i]:getInformation("reference") == nil then
+            listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
+         elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
+            listEdgesOut[i]:setInformation("reference", nil)                      
+         elseif listEdgesOut[i]:getInformation("reference") == formulaOutsideBracketEdge:getDestino() then
+            listEdgesOut[i]:setInformation("reference", nil)
+         else
+            for restartedFormula, _ in pairs(restartedFormulas) do
+               if listEdgesOut[i]:getInformation("reference") == restartedFormula then
+                  listEdgesOut[i]:setInformation("reference", nil)
+               end               
+            end
+
+         end
+         
       end
    end   
 
@@ -1136,7 +1155,6 @@ local function applyRestartRule(sequentNode, formulaNode)
 
    newSequentNode:setInformation("leftExpandedFormulas", Set:new())   
 
-   restartedFormulas = newSequentNode:getInformation("restartedFormulas")
    restartedFormulas:add(formulaNode)  
 
    local lweight = goalsList[sequentNode:getLabel()].weight
@@ -1384,7 +1402,7 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                end
             end
             
-            if tonumber(k:sub(4)) == 132 then
+            if tonumber(k:sub(4)) == 28 then
                local x = 10
                --LogicModule.printProof(graph)
                --os.exit()

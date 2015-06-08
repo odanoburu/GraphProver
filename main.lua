@@ -279,14 +279,14 @@ local function inputFormula()
    -- local ki1 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
    -- local ki2 = "((((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1.."))"
 
-   local ki0 = "C"
-   local ki1 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
-   local ki2 = "(((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1..")"
+   local ki1 = "C"
+   local ki2 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
+   local ki3 = "(((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1..")"
 
 
    local ki = ki1
    local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
-   local alpha = ""
+   --local alpha = ""
 
    text = "Type your formula: "..alpha
    input_formula = alpha
@@ -308,8 +308,8 @@ local function inputFormula()
    --text = "Type your formula: (q imp (p imp (p))) imp (p imp (q imp (p)))"
    --input_formula = "(q imp (p imp (p))) imp (p imp (q imp (p)))"
 
-   text = "Type your formula: (q imp (p)) imp (q imp (p))"
-   input_formula = "(q imp (p)) imp (q imp (p))"
+   --text = "Type your formula: (q imp (p)) imp (q imp (p))"
+   --input_formula = "(q imp (p)) imp (q imp (p))"
    
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
