@@ -1,8 +1,0 @@
-iright("seq0", "imply4")
-focus("seq1", "imply3")
-ileft("seq2", "imply5")
-iright("seq3", "imply2")
-focus("seq5", "imply1")
-ileft("seq6", "imply6")
-iright("seq7", "imply0")
---restart("seq9", "A")

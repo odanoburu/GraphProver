@@ -21,6 +21,7 @@ local isDragging, isChoosingFocus, isExpandingFormula
 local FPSCAP = 60
 local text, input_formula, input_command = ""
 local editingState = NoInputing
+local formulas
 
 -- Private functions
 
@@ -273,43 +274,10 @@ local function expandAll()
 end
 
 local function inputFormula()
-   editingState = InputingFormula
-
-   -- local ki0 = "C"
-   -- local ki1 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
-   -- local ki2 = "((((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1.."))"
-
-   local ki1 = "C"
-   local ki2 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
-   local ki3 = "(((E imp ("..ki1..")) imp (E)) imp (E)) imp ("..ki1..")"
-
-
-   local ki = ki1
-   local alpha = "((((A imp ("..ki..")) imp (A)) imp (A)) imp ("..ki..")) imp (C)"
-   --local alpha = ""
-
-   text = "Type your formula: "..alpha
-   input_formula = alpha
-
-   -- Fixed examples:
-
-   --text = "Type your formula: ((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
-   --input_formula = "((((A imp (B)) imp (A)) imp (A)) imp (B)) imp (B)"
+   editingState = InputingFormula   
   
-   --text = "Type your formula: (B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
-   --input_formula = "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"
-
-   --text = "Type your formula: (A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
-   --input_formula = "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"
-
-   --text = "Type your formula: (((p11 or (p12)) and (p21 or (p22))) and (p31 or (p32))) imp ((((((p11 and (p21)) or (p31 and (p21))) or (p31 and (p11))) or (p12 and (p22))) or (p32 and (p22))) or (p32 and (p12)))"
-   --input_formula = "(((p11 or (p12)) and (p21 or (p22))) and (p31 or (p32))) imp ((((((p11 and (p21)) or (p31 and (p21))) or (p31 and (p11))) or (p12 and (p22))) or (p32 and (p22))) or (p32 and (p12)))"
-
-   --text = "Type your formula: (q imp (p imp (p))) imp (p imp (q imp (p)))"
-   --input_formula = "(q imp (p imp (p))) imp (p imp (q imp (p)))"
-
-   --text = "Type your formula: (q imp (p)) imp (q imp (p))"
-   --input_formula = "(q imp (p)) imp (q imp (p))"
+   text = "Type your formula or choose an example below: "
+   input_formula = ""
    
    SequentGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(SequentGraph)
@@ -318,8 +286,7 @@ end
 local function runInput()
    local parsed_formula = parse_input(input_formula)
    t_formula = convert_formula_totable(parsed_formula)
-
---   local t_mimp_formula = t_formula
+   
    local t_mimp_formula = implicational(t_formula)
    logger:info("inputFormula - alpha: "..convert_formula_tostring(t_mimp_formula))
    
@@ -368,11 +335,24 @@ end
 -- Events functions
 
 local function showInputTextEvent()
+   love.graphics.clear()
    font = love.graphics.newFont(12)
 
    love.graphics.setColor(0, 0, 255)
    love.graphics.setFont(font)  
    love.graphics.printf(text, 0, 0, love.graphics.getWidth())
+
+   local y = 200
+   local i = 1
+   formulas = {}
+   function Formula(f)
+      formulas[i] = f[2]
+      love.graphics.printf(i..") "..f[1].." "..f[2], 0, y + 30, love.graphics.getWidth())
+      y = y + 30
+      i = i + 1
+   end
+
+   dofile("data")   
 end
 
 local function expandAllButtonEvent()
@@ -573,15 +553,19 @@ function love.keypressed(key)
    if editingState == InputingFormula then
       if key == "backspace" then
          input_formula = input_formula:sub(1, input_formula:len()-1)
-         text = "Type your formula: " .. input_formula
+         text = "Type your formula or choose an example below: " .. input_formula
       end
 
       if key == "return" or key == "kpenter" then
+         if tonumber(input_formula) then
+            input_formula = formulas[tonumber(input_formula)]
+         end
+         
          if input_formula ~= "" then
             local status, err = pcall(runInput)
             if not status then
                input_formula = err
-               text = "Type your formula: " .. input_formula            
+               text = "Type your formula or choose an example below: " .. input_formula            
             end   
          end
       end
@@ -606,7 +590,7 @@ end
 function love.textinput(t)
    if editingState == InputingFormula then
       input_formula = input_formula .. t
-      text = "Type your formula: " .. input_formula
+      text = "Type your formula or choose an example below: " .. input_formula
    elseif editingState == InputingCommand then
       input_command = input_command .. t
       text = "Type your command: " .. input_command

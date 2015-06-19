@@ -1,0 +1,21 @@
+-- Invalid formulas:
+Formula{"example", "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"}
+
+
+-- Valid formulas:
+Formula{"example", "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"}
+Formula{"example", "(A imp (C)) imp (A imp (C))"}
+Formula{"example", "(q imp (p imp (p))) imp (p imp (q imp (p)))"}
+Formula{"example", "(q imp (p)) imp (q imp (p))"}
+
+-- Chi Formulas: 
+local chi1 = "C"
+local chi2 = "(((D imp (C)) imp (D)) imp (D)) imp (C)"
+local chi3 = "(((E imp ("..chi2..")) imp (E)) imp (E)) imp ("..chi2..")"
+
+local alpha1 = "((((A imp ("..chi1..")) imp (A)) imp (A)) imp ("..chi1..")) imp (C)"
+Formula{"chi1", alpha1}
+local alpha2 = "((((A imp ("..chi2..")) imp (A)) imp (A)) imp ("..chi2..")) imp (C)"
+Formula{"chi2", alpha2}
+local alpha3 = "((((A imp ("..chi3..")) imp (A)) imp (A)) imp ("..chi3..")) imp (C)"
+Formula{"chi3", alpha3}

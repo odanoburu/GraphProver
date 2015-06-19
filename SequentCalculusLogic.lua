@@ -178,7 +178,7 @@ end
 local function createGraphEmpty()
 
    local SequentGraph = Graph:new ()
-   --SequentNode:resetCounters()
+   SequentNode:resetCounters()
    
    local NodeGG = SequentNode:new(lblNodeGG)
    local nodes = {NodeGG}
@@ -782,13 +782,34 @@ local function isExpandable(sequentNode)
       end
 
       local edgesInFocus = nil
+      local edgesInOriginal = nil
+      local referenceFormula = nil
+      local hasReference = false
       for _,edgesInFocus in ipairs(sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino():getEdgesOut()) do
          formulaNode = edgesInFocus:getDestino()
-         if not leftExpandedFormulas[formulaNode:getInformation("originalFormula")] and formulaNode:getInformation("type") == opImp.graph then                           
+         if not leftExpandedFormulas[formulaNode:getInformation("originalFormula")] and formulaNode:getInformation("type") == opImp.graph then
+
+            for _,edgesInOriginal in ipairs(formulaNode:getInformation("originalFormula"):getEdgesIn()) do
+               if edgesInOriginal:getInformation("reference") ~= nil then
+                  referenceFormula = edgesInOriginal:getInformation("reference")
+                  hasReference = true
+                  if referenceFormula == rightFormulaNode then
+                     ret = true
+                     rule = lblRuleImplyLeft
+                     logger:info("isExpandable - "..sequentNode:getLabel().." ainda tem fórmulas focada não expandida com imply-left.")
+                     break
+                  end            
+               end
+            end
+            
+            if hasReference then
+               break
+            end
+
             ret = true
             rule = lblRuleImplyLeft
             logger:info("isExpandable - "..sequentNode:getLabel().." ainda tem fórmulas focada não expandida com imply-left.")
-            break                                                                                  
+            break
          end
       end      
    end
@@ -1392,69 +1413,55 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
             else
                if tonumber(pstep) <= nstep then
                   nstep = 0
-                  --sufix = sufix + 1
-                  --LogicModule.printProof(graph, tostring(sufix))
-                  --os.showProofOnBrowser(tostring(sufix))
-                  --logGoalsList()
                   break
                else
                   nstep = nstep + 1
                end
             end
             
-            if tonumber(k:sub(4)) == 28 then
+            if tonumber(k:sub(4)) == 36 then
                local x = 10
-               --LogicModule.printProof(graph)
-               --os.exit()
             end          
 
             if not verifyAxiom(seq) then
-               -- if checkLoop(seq) then
-               --    -- mostrar a lista de goals nesse momento antes de esvaziar!
-               --    goalsList = {}
-               --    nstep = 0            
-               --    logger:info("expandAll - Loop found - Counter Example!")
-               --    break
-               -- else
-                  local ret, rule, formulaNode = isExpandable(seq)
+               local ret, rule, formulaNode = isExpandable(seq)
 
-                  if ret then
-                     if rule == lblRuleImplyRight then
-                        applyImplyRightRule(seq, formulaNode)
-                     elseif rule == lblRuleFocus then
-                        applyFocusRule(seq, formulaNode)
-                     elseif rule == lblRuleImplyLeft then
-                        applyImplyLeftRule(seq, formulaNode)
-                     elseif rule == lblRuleRestart then
-                        applyRestartRule(seq, formulaNode)
-                     end                                    
-                  else
-                     --goalsList[seq:getLabel()] = nil
-                     goalsList = {}
-                     nstep = 0
-                     logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
-                     break                     
-                  end                  
---               end               
+               if ret then
+                  if rule == lblRuleImplyRight then
+                     applyImplyRightRule(seq, formulaNode)
+                  elseif rule == lblRuleFocus then
+                     applyFocusRule(seq, formulaNode)
+                  elseif rule == lblRuleImplyLeft then
+                     applyImplyLeftRule(seq, formulaNode)
+                  elseif rule == lblRuleRestart then
+                     applyRestartRule(seq, formulaNode)
+                  end                                    
+               else
+                  goalsList = {}
+                  nstep = 0
+                  logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
+                  break                     
+               end                  
             end        
          end
       end      
    end
 
+   local ret
    if not isAllExpanded and nstep ~= 0 then
       graph = LogicModule.expandAll(graph, pstep)
+      ret = false
    else
       nstep = 0
-      --if tonumber(pstep) > nstep then
-         sufix = sufix + 1
-         LogicModule.printProof(graph, tostring(sufix))
-         os.showProofOnBrowser(tostring(sufix))
-         logGoalsList()
-      --end
+      sufix = sufix + 1
+      LogicModule.printProof(graph, tostring(sufix))
+      os.showProofOnBrowser(tostring(sufix))
+      logGoalsList()
       logger:info("expandAll - All sequents expanded!")
+      ret = true
    end
 
-   return graph 
+   return graph, ret 
 end
 
 function LogicModule.printProof(agraph, nameSufix, pprintAll)
@@ -1729,6 +1736,7 @@ end
 
 function run()
    LogicModule.expandAll(graph)
+   clear()
 end
 
 function run_seq(seq)
@@ -1742,6 +1750,7 @@ end
 
 function step(pstep)
    LogicModule.expandAll(graph, pstep)
+   clear()
 end
 
 function step_seq(pstep, seq)
