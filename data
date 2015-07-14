@@ -1,6 +1,7 @@
 -- Invalid formulas:
 Formula{"example", "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"}
-
+Formula{"peirce", "(((A imp (B)) imp (B)) imp (A))"}
+Formula{"dummet", "((p imp (q)) imp (r)) imp ((((q imp (p)) imp (r))) imp (r))"}
 
 -- Valid formulas:
 Formula{"example", "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"}

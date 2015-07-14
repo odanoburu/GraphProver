@@ -789,22 +789,22 @@ local function isExpandable(sequentNode)
          formulaNode = edgesInFocus:getDestino()
          if not leftExpandedFormulas[formulaNode:getInformation("originalFormula")] and formulaNode:getInformation("type") == opImp.graph then
 
-            for _,edgesInOriginal in ipairs(formulaNode:getInformation("originalFormula"):getEdgesIn()) do
-               if edgesInOriginal:getInformation("reference") ~= nil then
-                  referenceFormula = edgesInOriginal:getInformation("reference")
-                  hasReference = true
-                  if referenceFormula == rightFormulaNode then
-                     ret = true
-                     rule = lblRuleImplyLeft
-                     logger:info("isExpandable - "..sequentNode:getLabel().." ainda tem fórmulas focada não expandida com imply-left.")
-                     break
-                  end            
-               end
-            end
+            -- for _,edgesInOriginal in ipairs(formulaNode:getInformation("originalFormula"):getEdgesIn()) do
+            --    if edgesInOriginal:getInformation("reference") ~= nil then
+            --       referenceFormula = edgesInOriginal:getInformation("reference")
+            --       hasReference = true
+            --       if referenceFormula == rightFormulaNode then
+            --          ret = true
+            --          rule = lblRuleImplyLeft
+            --          logger:info("isExpandable - "..sequentNode:getLabel().." ainda tem fórmulas focada não expandida com imply-left.")
+            --          break
+            --       end            
+            --    end
+            -- end
             
-            if hasReference then
-               break
-            end
+            -- if hasReference then
+            --    break
+            -- end
 
             ret = true
             rule = lblRuleImplyLeft
