@@ -9,7 +9,6 @@ Installation
 SequentProver depends on the following libraries (listed with the versions I'm using):
 
 * love (0.7.2)
-* luasocket (3.0rc1-1)
 * lpeg (0.12-1)
 * lualogging (1.3.0-1)
 
@@ -28,11 +27,7 @@ Inside SequentProver directory:
 
 `love .`
 
-2. Run the input terminal
-
-`lua inputServer.lua`
-
-3. Follow commands in the graphical interface
+2. Follow commands in the graphical interface
 
 Input formula example
 =====================
