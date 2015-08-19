@@ -230,7 +230,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   applyForces(graph)
+   --applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
