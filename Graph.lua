@@ -13,20 +13,16 @@ Graph = {}
 
 Graph_Metatable = { __index = Graph }
 
--------------------------------------------------------------------------------
--- Graph constructor
-
+--- Graph constructor
 function Graph:new ()
    return setmetatable( {}, Graph_Metatable )
 end
 
--------------------------------------------------------------------------------
--- This function is used only in the Graph module
+--- This function is used only in the Graph module
 -- @param listOfObj A list of objects that are nodes or edges.
 -- @param newElement An object that is a edge or a node.
 -- @return true if the label of the newElement do not exist in any of the
 --         objects within the listOfObj and false otherwise.
-
 local function verifyLabel(listOfObj, newElement)
    assert( (getmetatable(newElement) == Edge_Metatable) or (getmetatable(newElement) == Node_Metatable), "verifyLabel expects a edge or a node.")
    for i=1, #listOfObj do
@@ -37,13 +33,11 @@ local function verifyLabel(listOfObj, newElement)
    return true
 end
 
--------------------------------------------------------------------------------
--- This function is used only in the Graph module
+--- This function is used only in the Graph module
 -- @param listOfObj A list of objects that are nodes.
 -- @param element An object that is a node.
 -- @return true if the label ofelement is the label of some member of lisstOfObj
 --         and false otherwise.
-
 local function membership(element, listOfObj)
    assert(getmetatable(element) == Node_Metatable, "membership expects a node.")
    local r = false
@@ -55,10 +49,8 @@ local function membership(element, listOfObj)
    return r
 end
 
--------------------------------------------------------------------------------
--- Sets the root of the Graph
+--- Sets the root of the Graph
 -- @param node A node of the graph.
-
 function Graph:setRoot( node )
    -- Verifica se o vertice raiz já existe no grafo (tem que existir) 
    for i=1, #self.nodes do
@@ -69,10 +61,8 @@ function Graph:setRoot( node )
    end
 end
 
--------------------------------------------------------------------------------
--- Adds a list of nodes in the graph
+--- Adds a list of nodes in the graph
 -- @param nodes Uma lista contendo todos os vertices que serão adicionados
-
 function Graph:addNodes( nodes )
 
    if self.nodes == nil then
@@ -90,10 +80,8 @@ function Graph:addNodes( nodes )
    end
 end
 
--------------------------------------------------------------------------------
--- Adds a node in the graph
+--- Adds a node in the graph
 -- @param node O vertice que será adicionado
-
 function Graph:addNode( node )
 
    assert( getmetatable(node) == Node_Metatable , "Graph:addNode expects a Node") -- Garantir que é um vertice
@@ -105,17 +93,13 @@ function Graph:addNode( node )
    self.nodes[#self.nodes+1] = node
 end
 
--------------------------------------------------------------------------------
--- Returns the list of the nodes.
-
+--- Returns the list of the nodes.
 function Graph:getNodes()
    return self.nodes
 end
 
--------------------------------------------------------------------------------
--- Returns the node with the specific label.
+--- Returns the node with the specific label.
 -- @param label O string contendo o label do vertice desejado 
-
 function Graph:getNode(label)	
    assert( type(label) == "string", "Graph:getNode expects a string" )
    
@@ -130,17 +114,13 @@ function Graph:getNode(label)
    end
 end
 
--------------------------------------------------------------------------------
--- Returns the list of the edges.
-
+--- Returns the list of the edges.
 function Graph:getEdges()
    return self.edges
 end
 
--------------------------------------------------------------------------------
--- Returns the edge with a specific label
+--- Returns the edge with a specific label
 -- @param label A string with the label of the desired edge
-
 function Graph:getEdge(label)
    assert( type(label) == "string", "Graph:getEdge expects a string" )
    
@@ -155,10 +135,8 @@ function Graph:getEdge(label)
    end
 end
 
--------------------------------------------------------------------------------
---  Adds a list of edges in the graph.
+---  Adds a list of edges in the graph.
 -- @param edges A list of edges
-
 function Graph:addEdges(edges)
 
    if self.edges == nil then
@@ -172,10 +150,8 @@ function Graph:addEdges(edges)
    end
 end
 
--------------------------------------------------------------------------------
--- Adds an edge in the graph.
+--- Adds an edge in the graph.
 -- @param edge: An edge
-
 function Graph:addEdge(edge)
 
    assert( getmetatable(edge) == Edge_Metatable , "Graph:addEdge expects a edge")
@@ -186,12 +162,10 @@ function Graph:addEdge(edge)
    self.edges[#self.edges +1] = edge
 end
 
--------------------------------------------------------------------------------
--- Removes an edge from the graph.
+--- Removes an edge from the graph.
 -- @param The edge that you want to delete from the graph.
 -- @return true, if the edge was deleted.
 --         false, if the edge was not found, so it was not deleted.
-
 function Graph:removeEdge(edge)
    assert( getmetatable(edge) == Edge_Metatable , "Graph:removeEdge expects a edge")
    
@@ -230,10 +204,8 @@ function Graph:removeEdge(edge)
    return isEdgeDeleted
 end
 
--------------------------------------------------------------------------------
--- Removes a node from the graph
+--- Removes a node from the graph
 -- @param node The node to be removed
-
 function Graph:removeNode(node)
    assert( getmetatable(node) == Node_Metatable , "Graph:removeNode expects a Node")
    

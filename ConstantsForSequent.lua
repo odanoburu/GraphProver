@@ -1,13 +1,11 @@
---[[
-
-   Constants for sequent Module
-   
-   Contains all the constants used by the Sequent Calculus Logic Module.
-
-   Author: Vitor
-   Contributors :Jefferson
-
-]]--
+-------------------------------------------------------------------------------
+--   Constants for sequent Module
+--
+--   Contains all the constants used by the Sequent Calculus Logic Module.
+--
+--   @authors: Vitor, Jefferson
+--
+-------------------------------------------------------------------------------
 
 -- Operators definitions
 opAnd = {}
@@ -47,16 +45,23 @@ lblEdgeEsq = "esq"
 lblEdgeDir = "dir"
 lblEdgeDeducao = "DED"
 lblEdgeGoal = "Goal"
-lblEdgeContext = "Context"
+lblEdgeCounterModel = "COUNTER"
+lblEdgeAccessability = "Access"
+lblEdgeSatisfy = "sat"
+lblEdgeUnsatisfy = "unsat"
+lblFormulaReference = "ref"
 
 lblNodeGG = "GG"
 lblNodeEsq = "e"
 lblNodeDir = "d"
 lblNodeBrackets = "[]"
+lblNodeFocus = "{}"
+lblNodeWorld = "w"
 
-lblCarnality = "log_"
-lblUnary = "u"
-lblBinary = "b" 
+lblRuleFocus = "focus"
+lblRuleImplyLeft = "left"
+lblRuleImplyRight = "right"
+lblRuleRestart = "restart"
 
 -- Side definitions
 leftSide = "Left"
