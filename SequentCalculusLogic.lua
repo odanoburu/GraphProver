@@ -68,13 +68,15 @@ local function copyMarkedFormula(sequentNode, formulaNode)
    graph:addNode(newNode)
 
    local leftEdgesOut = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()   
-   local newEdge = SequentEdge:new(""..#leftEdgesOut, sequentNode, newNode)
+   local newEdge = SequentEdge:new(""..#leftEdgesOut, sequentNode:getEdgeOut(lblEdgeEsq):getDestino(), newNode)
    graph:addEdge(newEdge)
 
    for _, leftEdge in ipairs(leftEdgesOut) do
       if leftEdge:getDestino() == formulaNode then 
          for k,info in pairs(leftEdge:getInformationTable()) do
-            newEdge:setInformation(k, info)            
+            if k ~= "reference" then
+               newEdge:setInformation(k, info)
+            end
          end
       end      
    end   
@@ -469,6 +471,11 @@ local function printSequent(sequentNode, file, pprintAll)
    local shortedFormula = true
 
    if sequentNode ~= nil then
+
+      if tonumber(sequentNode:getLabel():sub(4)) == 8 then
+         local x = 10
+      end          
+
       
       local seqNumber = sequentNode:getLabel():sub(4,sequentNode:getLabel():len())
       if seqNumber == "0" then shortedFormula = false end
@@ -513,12 +520,14 @@ local function printSequent(sequentNode, file, pprintAll)
          
          if nodeEsq ~= nil then
             for i, edge in ipairs(nodeEsq:getEdgesOut()) do
-               ret = ret..printFormula(edge:getDestino(), shortedFormula)
+               local formula = printFormula(edge:getDestino(), shortedFormula)
 
                if edge:getInformation("reference") ~= nil then
                   local atomicReference = edge:getInformation("reference")                  
-                  ret = ret.."^{"..edge:getInformation("reference"):getLabel().."}"
-               end            
+                  formula = "("..formula..")^{"..edge:getInformation("reference"):getLabel().."}"
+               end
+
+               ret = ret..formula
                
                ret = ret..","
             end    
@@ -1112,13 +1121,6 @@ local function applyRestartRule(sequentNode, formulaNode)
    local newEdgeFocus = SequentEdge:new("0", sequentLeftNode, newFocusNode)
    graph:addEdge(newEdgeFocus)
 
-   -- Copy bracket formulas different from the right formula
-   -- for _, bracketEdge in ipairs(newBracketNode:getEdgesOut()) do
-   --    if bracketEdge:getDestino() ~= formulaNode then
-   --       copyMarkedFormula(sequentNode, bracketEdge:getDestino())
-   --    end      
-   -- end
-
    local formulaInBracketEdge = findFormulaInBracket(newBracketNode, formulaNode)
    local formulaOutsideInBracketEdge = findFormulaInBracket(newBracketNode, formulaOutsideBracketEdge:getDestino())
 
@@ -1127,31 +1129,11 @@ local function applyRestartRule(sequentNode, formulaNode)
    local listEdgesOut = sequentLeftNode:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getLabel() ~= "0" then
-         -- if listEdgesOut[i]:getInformation("reference") == nil and formulaInBracketEdge == nil then
-         --    listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
-         -- elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
-         --    listEdgesOut[i]:setInformation("reference", nil)                      
-         -- elseif listEdgesOut[i]:getDestino():getInformation("originalFormula") == nil then
-         --    listEdgesOut[i]:setInformation("reference", nil)                                  
-         -- end
-
-         --listEdgesOut[i]:setInformation("reference", nil)
-
          if listEdgesOut[i]:getInformation("reference") == nil then
             listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
          elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
             listEdgesOut[i]:setInformation("reference", nil)                      
-         elseif listEdgesOut[i]:getInformation("reference") == formulaOutsideBracketEdge:getDestino() then
-            listEdgesOut[i]:setInformation("reference", nil)
-         else
-            for restartedFormula, _ in pairs(restartedFormulas) do
-               if listEdgesOut[i]:getInformation("reference") == restartedFormula then
-                  listEdgesOut[i]:setInformation("reference", nil)
-               end               
-            end
-
          end
-         
       end
    end   
 
@@ -1228,10 +1210,29 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
 
    -- 1.0. Put label in non-marked formulas on the left
    local listEdgesOut = nodeLeft1:getEdgesOut()
+   local numberOfFormulasOnLeft =  #listEdgesOut
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getLabel() ~= "0" then
          if listEdgesOut[i]:getInformation("reference") == nil then
-            listEdgesOut[i]:setInformation("reference", nodeFormulaOutsideBrackets)
+            --listEdgesOut[i]:setInformation("reference", nodeFormulaOutsideBrackets)
+         --else
+            local formulaNode = listEdgesOut[i]:getDestino()
+            local newFormulaNode = SequentNode:new(formulaNode:getInformation("type"))
+            newFormulaNode:setInformation("originalFormula", formulaNode)
+            if formulaNode:getEdgeOut(lblEdgeEsq) ~= nil then
+               local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino()) 
+               local newEdgeDir = SequentEdge:new(lblEdgeDir, newFormulaNode, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
+
+               graph:addEdge(newEdgeEsq)
+               graph:addEdge(newEdgeDir)               
+            end            
+            graph:addNode(newFormulaNode)
+
+            local newEdgeFormula = SequentEdge:new(""..numberOfFormulasOnLeft, nodeLeft1, newFormulaNode)
+            numberOfFormulasOnLeft = numberOfFormulasOnLeft + 1
+            graph:addEdge(newEdgeFormula)
+            
+            newEdgeFormula:setInformation("reference", nodeFormulaOutsideBrackets)
          end
       end
    end
