@@ -3,10 +3,12 @@
 --
 --   @author: Jefferson
 -------------------------------------------------------------------------------
-require "SequentGraph.lua"
+require "Logic/SequentGraph.lua"
 
 
 Rule = {name = ""}
+
+Rule_Metatable = { __index = Rule }
 
 -------------------------------------------------------------------------------
 -- Rule constructor
@@ -25,9 +27,6 @@ end
 function Rule:setFormula(form)
    self.formula = form
 end
-
-
-
 
 ImpLeft = Rule:new {name = "-->-Left"}
 

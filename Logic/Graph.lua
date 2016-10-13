@@ -4,10 +4,8 @@
 --   @author: Vitor
 --   @author: Hermann
 -------------------------------------------------------------------------------
-
-require 'Node'
-require 'Edge'
-
+require 'Logic/Node'
+require 'Logic/Edge'
 
 Graph = {}
 

@@ -66,4 +66,3 @@ lblRuleRestart = "restart"
 -- Side definitions
 leftSide = "Left"
 rightSide = "Right"
-

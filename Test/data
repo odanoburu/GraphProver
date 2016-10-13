@@ -1,8 +1,3 @@
--- Invalid formulas:
-Formula{"invalid1", "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"}
-Formula{"invalid2-peirce", "(((A imp (B)) imp (B)) imp (A))"}
-Formula{"invalid3-dummet", "((p imp (q)) imp (r)) imp ((((q imp (p)) imp (r))) imp (r))"}
-
 -- Valid formulas:
 Formula{"valid1", "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"}
 Formula{"valid2", "(A imp (C)) imp (A imp (C))"}
@@ -18,9 +13,14 @@ local alpha1 = "((((A imp ("..chi1..")) imp (A)) imp (A)) imp ("..chi1..")) imp 
 Formula{"valid-chi1", alpha1}
 local alpha2 = "((((A imp ("..chi2..")) imp (A)) imp (A)) imp ("..chi2..")) imp (C)"
 Formula{"valid-chi2", alpha2}
-local alpha3 = "((((A imp ("..chi3..")) imp (A)) imp (A)) imp ("..chi3..")) imp (C)"
+--local alpha3 = "((((A imp ("..chi3..")) imp (A)) imp (A)) imp ("..chi3..")) imp (C)"
 --Formula{"valid-chi3", alpha3}
 
-Formula{"invalid5", "A imp ((A imp (p)) imp ((q imp (q)) imp (p)))"}
-Formula{"invalid6", "A imp ((A imp (t)) imp ((t imp (r)) imp ((r imp (p)) imp (p))))"}
-Formula{"invalid7", "A imp ((A imp (t)) imp (((t imp (r)) imp (q imp (r))) imp ((r imp (q)) imp (p))))"}
+-- Invalid formulas:
+Formula{"invalid1", "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"}
+Formula{"invalid2-peirce", "(((A imp (B)) imp (A)) imp (A))"}
+Formula{"invalid3-dummet", "((p imp (q)) imp (r)) imp ((((q imp (p)) imp (r))) imp (r))"}
+Formula{"invalid4", "A imp ((A imp (p)) imp ((q imp (q)) imp (p)))"}
+Formula{"invalid5", "A imp ((A imp (t)) imp ((t imp (r)) imp ((r imp (p)) imp (p))))"}
+Formula{"invalid6", "A imp ((A imp (t)) imp (((t imp (r)) imp (q imp (r))) imp ((r imp (q)) imp (p))))"}
+

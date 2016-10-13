@@ -1,15 +1,15 @@
 -------------------------------------------------------------------------------
 --   Constants Module
 --
---   Contains all the constants used by the grafic module.
+--   Contains all the constants used by the graphic module.
 --
---   @authors: Vitor, Jefferson
+--   @authors: Vitor, Jefferson, Bernardo
 --
 -------------------------------------------------------------------------------
 
 -- Positioning definitions
-windowWidth = 800
-windowHeight = 600
+windowWidth = 1024
+windowHeight = 640
 xLim = 30
 yLim = 30
 xStep = 40
@@ -26,6 +26,11 @@ circleSeparation = 20
 raioDoVertice = 5
 escalaLetraVertice = .85 -- <1 para diminuir e >=1 para aumentar
 escalaLetraAresta = .75
+
+-- Botões do mouse (de Löve 0.9 para 0.10 houve alterações)
+leftMouseButton = 1
+rightMouseButton = 2
+middleMouseButton = 3
 
 -- String para mensagem de erro
 xDebug = 10
@@ -45,3 +50,8 @@ buttonTime = 0.15
 InputingFormula = "InputingFormula"
 InputingCommand = "InputingCommand"
 NoInputing = ""
+
+-- Logic System to Load
+systemND = "NaturalDeduction"
+systemSeqCalc = "SequentCalculus"
+logicSystem = systemSeqCalc

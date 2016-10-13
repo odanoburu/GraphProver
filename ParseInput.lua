@@ -3,11 +3,11 @@
 --
 --   Utilitary module to parse formula input.
 --
---   @authors: Vitor, Hermann, Jefferson
+--   @authors: Vitor, Hermann, Jefferson, Bernardo
 --
 -------------------------------------------------------------------------------
 
-require "Set"
+require "Logic/Set"
 require "logging" 
 require "logging.file"
 
@@ -32,7 +32,11 @@ local function table_formula(f)
       return("[ And"..table_formula(f[1])..","..table_formula(f[2]).."]")     
    elseif f.tag == "or" then
       return("[ Or"..table_formula(f[1])..","..table_formula(f[2]).."]")     
-   end 
+   elseif f.tag == "bot" then
+      return("[ Bottom]")
+   elseif f.tag == "not" then
+      return("[ Not"..table_formula(f[1]).."]")
+   end
 end     
 
 local function table_formulas(t)
@@ -50,6 +54,7 @@ local function print_Goal(t)
    io.write("[ Goal ")
    if #t > 0 then
       print_formulas(t[1])
+      -- TODO modificar aqui, ver como remover o SEQ
       io.write(" SEQ ")
       print_formulas(t[2])
    end
@@ -119,17 +124,19 @@ function parse_input(contents)
    -- Grammar
    local formula = lpeg.V("formula")
    local form, factor, term = lpeg.V("form"), lpeg.V("factor"), lpeg.V("term")
-   local term_imp, term_and, term_or = lpeg.V("term_imp"), lpeg.V("term_and"), lpeg.V("term_or")
+   local term_imp, term_and, term_or, term_bot, term_not = lpeg.V("term_imp"), lpeg.V("term_and"), lpeg.V("term_or"), lpeg.V("term_bot"), lpeg.V("term_not")
    local Atomo = taggedCap("Atom", token(Atom))
    G = lpeg.P{ 
       formula,
       formula = skip * form * skip * -1;
       form = term + factor;
       factor = taggedCap("Atom", token(Atom)) + symb("(") * form * symb(")");
-      term = term_imp + term_and + term_or;
+      term = term_imp + term_and + term_or + term_bot + term_not;
       term_imp = taggedCap("imp", factor * kw("imp") * symb("(") * form * symb(")"));
       term_and = taggedCap("and", factor * kw("and") * symb("(") * form * symb(")")); 
-      term_or = taggedCap("or", factor * kw("or") * symb("(") * form * symb(")"));       
+      term_or = taggedCap("or", factor * kw("or") * symb("(") * form * symb(")"));
+      term_bot = taggedCap("bottom", kw("bottom"));
+      term_not = taggedCap("not", kw("not") * symb("(") * form * symb(")"));
    }
 
    local t = lpeg.match(G, contents)
@@ -163,9 +170,14 @@ local function mimp(formula)
          return formula["1"]
       elseif formula["tag"] == "imp" then
          return "("..mimp(formula["1"]).." imp ("..mimp(formula["2"]).."))"
+      -- TODO modificar abaixo para lógica não minimal
       elseif formula["tag"] == "and" then
          return fresh_atom()
       elseif formula["tag"] == "or" then
+         return fresh_atom()
+      elseif formula["tag"] == "bot" then
+         return fresh_atom()
+      elseif formula["tag"] == "not" then
          return fresh_atom()
       end
    end
@@ -181,7 +193,7 @@ local function axioms(alpha, formula)
    local set1
    local set2
    
-   if formula["tag"] == "Atom" then
+   if formula["tag"] == "Atom" or formula["tag"] == "bot" then
       return Set:new()
       
    elseif formula["tag"] == "imp" then
@@ -240,6 +252,12 @@ local function axioms(alpha, formula)
       set2 = set1:union(axioms(alpha, formula["2"]))
 
       return set2
+
+   elseif formula["tag"] == "not" then
+      local s_formula = convert_formula_tostring(formula)
+      local formula_s = convert_formula_tostring(formula["1"])
+
+      -- TODO ver como prosseguir aqui. Lembrar que ¬A vira A → ⊥
    end
    
 end

@@ -8,8 +8,8 @@
 --
 -------------------------------------------------------------------------------
 
-require "ConstantsForSequent"
-require 'Graph'
+require "Logic/SequentCalculus/ConstantsForSequent"
+require 'Logic/Graph'
 
 -- Contadores dos operadores
 edgeCount = 0
