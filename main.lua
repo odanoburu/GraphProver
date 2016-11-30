@@ -10,10 +10,10 @@
 require 'ConstantsForLove'
 require 'ParseInput'
 require 'Util/utility'
-require "Logic/NaturalDeduction/NaturalDeductionLogic"
-require "Logic/NaturalDeduction/NaturalDeductionAPI"
---require "Logic/SequentCalculus/SequentCalculusLogic"
---require "Logic/SequentCalculus/SequentCalculusAPI"
+--require "Logic/NaturalDeduction/NaturalDeductionLogic"
+--require "Logic/NaturalDeduction/NaturalDeductionAPI"
+require "Logic/SequentCalculus/SequentCalculusLogic"
+require "Logic/SequentCalculus/SequentCalculusAPI"
 require 'logging.file'
 require 'io' 
 
@@ -140,7 +140,7 @@ local function applyForces(graph)
 
          total_kinetic_energy = total_kinetic_energy + (nodes[i]:getInformation("m") * ((nodes[i]:getInformation("Vx")^2) + (nodes[i]:getInformation("Vy")^2)))
       end
-   until total_kinetic_energy < 80000
+   until total_kinetic_energy < 50000
 end
 
 --- Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
@@ -233,7 +233,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   applyForces(graph)
+   --applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
@@ -513,7 +513,7 @@ local function dragNodeOrScreenOrSelectFocusEvent()
       -- Usuario arrastando um vertice  
    elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
       nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
-      applyForces(proofGraph)
+      --applyForces(proofGraph)
       
     -- Usuario arrastando toda a tela 
    elseif nodeMoving == nil then        

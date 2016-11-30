@@ -8,6 +8,7 @@
 --
 -------------------------------------------------------------------------------
 require "Logic/SequentCalculus/SequentCalculusLogic"
+require "Logic/SequentCalculus/NDConverter"
 
 APIModule = {}
 
@@ -247,6 +248,7 @@ function restart(seq, form)
 end
 
 function run()
+   graph = LogicModule.getGraph()
    LogicModule.expandAll(graph)
    clear()
 end
@@ -261,6 +263,7 @@ function run_seq(seq)
 end
 
 function step(pstep)
+   graph = LogicModule.getGraph()
    LogicModule.expandAll(graph, pstep)
    clear()
 end
@@ -275,8 +278,16 @@ function step_seq(pstep, seq)
 end
 
 function print_all()
+   graph = LogicModule.getGraph()
    LogicModule.printProof(graph, "", true)
    os.showProofOnBrowser()   
+   clear()   
+end
+
+function testc(seq)
+   --graph = LogicModule.getGraph()
+   local seqNode = finds(seq)
+   graph = NDConverterModule.convertProof2ND(graph, seqNode)
    clear()   
 end
 

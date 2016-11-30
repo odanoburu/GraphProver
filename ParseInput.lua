@@ -23,22 +23,6 @@ local function table_atom(x)
    return (string.format("\"%s\"", x))
 end
 
-local function table_formula(f)
-   if f.tag == "Atom" then 
-      return("[ Atom "..table_atom(f[1]).." ]")
-   elseif f.tag == "imp" then
-      return("[ Imp"..table_formula(f[1])..","..table_formula(f[2]).."]")     
-   elseif f.tag == "and" then
-      return("[ And"..table_formula(f[1])..","..table_formula(f[2]).."]")     
-   elseif f.tag == "or" then
-      return("[ Or"..table_formula(f[1])..","..table_formula(f[2]).."]")     
-   elseif f.tag == "bot" then
-      return("[ Bottom]")
-   elseif f.tag == "not" then
-      return("[ Not"..table_formula(f[1]).."]")
-   end
-end     
-
 local function table_formulas(t)
    if #t > 0 then 
       local s = ""
@@ -158,7 +142,9 @@ end
 -- Recursivelly replace formulas by propositional letters
 --
 -- @param formula a formula, in table format which will have its
---               non-MIMP subformulas translated in new propostional letters
+--               non-MIMP subformulas translated in new propostional
+--               letters.
+--
 -- @return a propositonal representation of non-MIMP (sub)formulas as string
 local function mimp(formula)
    local s_formula = convert_formula_tostring(formula)
@@ -170,15 +156,12 @@ local function mimp(formula)
          return formula["1"]
       elseif formula["tag"] == "imp" then
          return "("..mimp(formula["1"]).." imp ("..mimp(formula["2"]).."))"
-      -- TODO modificar abaixo para lógica não minimal
       elseif formula["tag"] == "and" then
          return fresh_atom()
       elseif formula["tag"] == "or" then
          return fresh_atom()
-      elseif formula["tag"] == "bot" then
-         return fresh_atom()
       elseif formula["tag"] == "not" then
-         return fresh_atom()
+         return "("..mimp(formula["1"]).." imp (f))"
       end
    end
 end
@@ -193,7 +176,7 @@ local function axioms(alpha, formula)
    local set1
    local set2
    
-   if formula["tag"] == "Atom" or formula["tag"] == "bot" then
+   if formula["tag"] == "Atom" then
       return Set:new()
       
    elseif formula["tag"] == "imp" then
@@ -253,26 +236,29 @@ local function axioms(alpha, formula)
 
       return set2
 
-   elseif formula["tag"] == "not" then
-      local s_formula = convert_formula_tostring(formula)
-      local formula_s = convert_formula_tostring(formula["1"])
-
-      -- TODO ver como prosseguir aqui. Lembrar que ¬A vira A → ⊥
+   elseif formula["tag"] == "not" then     
+      set1 = axioms(alpha, formula["1"])
+      return set1
    end
    
 end
 
 local function subformulas(formula)
+   local subformulas_set
    
    if formula["tag"] == "Atom" then
       return  Set:new({convert_formula_tostring(formula)})
    else
       local sub1_set = subformulas(formula["1"])
-      local sub2_set = subformulas(formula["2"])
-      local sub1_u_sub2 = sub1_set:union(sub2_set)
+      subformulas_set = sub1_set
+      
+      if formula["tag"] ~= "not" then     
+         local sub2_set = subformulas(formula["2"])
+         subformulas_set = subformulas_set:union(sub2_set)
+      end 
       
       local actual_formula = Set:new({convert_formula_tostring(formula)})
-      local subformulas_set = sub1_u_sub2:union(actual_formula)
+      subformulas_set = subformulas_set:union(actual_formula)
 
       return subformulas_set
    end
@@ -353,6 +339,8 @@ function convert_formula_tostring(t)
    
    if t["tag"] == "Atom" then
       s = t["1"]
+   elseif t["tag"] == "not" then
+      s = t["tag"].."("..convert_formula_tostring(t["1"])..") "
    else
       s = "("..convert_formula_tostring(t["1"])..") "..t["tag"].." ("..convert_formula_tostring(t["2"])..")"      
    end

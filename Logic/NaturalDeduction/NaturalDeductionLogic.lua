@@ -895,7 +895,7 @@ end
 function LogicModule.createGraphFromTable(form_table)
 	local letters = {}
 	sufix = 0
-	local graph = nil
+	--local graph = nil
 	
 	if form_table =="empty" then 
 		graph = createGraphEmpty()
