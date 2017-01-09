@@ -633,7 +633,9 @@ local function findFormulaInBracket(nodeBrackets, formulaNode)
    return formulaInBracketEdge
 end
 
-local function applyFocusRule(sequentNode, formulaNode)
+-- Public functions
+
+function applyFocusRule(sequentNode, formulaNode)
    logger:debug("Focus: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local newSequentNode, seqListNodes, seqListEdges = HelperModule.createNewSequent(sequentNode)
@@ -683,7 +685,7 @@ local function applyFocusRule(sequentNode, formulaNode)
    return graph, newSequentNode, newFormulaNode
 end
 
-local function applyRestartRule(sequentNode, formulaNode)
+function applyRestartRule(sequentNode, formulaNode)
    logger:debug("Restart: Expanding sequent "..sequentNode:getLabel())
    
    local newSequentNode, seqListNodes, seqListEdges = HelperModule.createNewSequent(sequentNode)
@@ -754,7 +756,7 @@ local function applyRestartRule(sequentNode, formulaNode)
    return graph
 end
 
-local function applyImplyLeftRule(sequentNode, formulaNode)
+function applyImplyLeftRule(sequentNode, formulaNode)
    logger:debug("ImplyLeft: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local NewSequentNode1, seqListNodes1, seqListEdges1=HelperModule.createNewSequent(sequentNode)
@@ -874,7 +876,7 @@ local function applyImplyLeftRule(sequentNode, formulaNode)
    return graph      
 end
 
-local function applyImplyRightRule(sequentNode, formulaNode)
+function applyImplyRightRule(sequentNode, formulaNode)
    logger:debug("ImplyRight: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
    
    local NewSequentNode, seqListNodes, seqListEdges=HelperModule.createNewSequent(sequentNode)
@@ -914,7 +916,7 @@ local function applyImplyRightRule(sequentNode, formulaNode)
    return graph     
 end
 
-local function applyImplyRule(sequentNode, formulaNode)
+function applyImplyRule(sequentNode, formulaNode)
 
    local sideOfOperator = verifySideOfOperator(sequentNode, formulaNode)      
 
@@ -928,8 +930,6 @@ local function applyImplyRule(sequentNode, formulaNode)
 
    return graph
 end
-
--- Public functions
 
 --- Create a graph from a formula in table form.
 --- Returns a graph that represents the given formula.

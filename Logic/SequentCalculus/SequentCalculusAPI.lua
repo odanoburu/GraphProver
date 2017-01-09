@@ -279,7 +279,7 @@ end
 
 function print_all()
    graph = LogicModule.getGraph()
-   LogicModule.printProof(graph, "", true)
+   PrintModule.printProof(graph, "", true)
    os.showProofOnBrowser()   
    clear()   
 end

@@ -19,6 +19,7 @@ Formula{"valid-chi1", alpha1}
 -- Invalid formulas:
 --Formula{"invalid1", "(A imp (B)) imp ((B imp (C)) imp (B imp (D imp (C))))"}
 Formula{"invalid2-peirce", "(((A imp (B)) imp (A)) imp (A))"}
+Formula{"3_pis", "((((B imp (C))) imp (C)) imp (D)) imp (D)"}
 Formula{"invalid2-test", "(p3 imp (p2)) imp (p1)"}
 Formula{"invalid3-dummet", "((p imp (q)) imp (r)) imp ((((q imp (p)) imp (r))) imp (r))"}
 --Formula{"invalid4", "A imp ((A imp (p)) imp ((q imp (q)) imp (p)))"}
