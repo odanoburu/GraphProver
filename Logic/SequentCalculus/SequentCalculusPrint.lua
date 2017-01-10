@@ -34,21 +34,21 @@ local function printFormula(formulaNode, shortedFormula)
 
    if (formulaNode:getEdgesOut() ~= nil) and (#formulaNode:getEdgesOut() ~= 0) then
       if formulaNode:getInformation("type") == lblNodeFocus then
-         ret = ret.."\\{"
+         ret = ret.."{\\color{red}\\{}"
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
             ret = ret..printFormula(subformula, shortedFormula)..","
          end
          ret = ret:sub(1, ret:len()-1)
-         ret = ret.."\\}"
+         ret = ret.."{\\color{red}\\}}"
       elseif formulaNode:getInformation("type") == lblNodeBrackets then
-         ret = ret.."["
+         ret = ret.."{\\color{red}[}"
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
             ret = ret..printFormula(subformula, shortedFormula).."," --"^{"..edge:getLabel().."},"
          end
          ret = ret:sub(1, ret:len()-1)
-         ret = ret.."]"
+         ret = ret.."{\\color{red}]}"
       else
          if not shortedFormula then
             for i, edge in ipairs(formulaNode:getEdgesOut()) do
@@ -77,10 +77,10 @@ local function printFormula(formulaNode, shortedFormula)
    else
       ret = formulaNode:getLabel()
       if formulaNode:getInformation("type") == lblNodeBrackets then
-         ret = "[]"
+         ret = "{\\color{red}[]}"
       end
       if formulaNode:getInformation("type") == lblNodeFocus then
-         ret = "\\{\\}"
+         ret = "{\\color{red}\\{\\}}"
       end      
    end
 
@@ -95,6 +95,7 @@ local function printSequent(sequentNode, file, pprintAll)
    local j = 1
    local rule = ""
    local shortedFormula = false
+   local alreadyPrintedFormulas = Set:new()
 
    if sequentNode ~= nil then
 
@@ -136,13 +137,7 @@ local function printSequent(sequentNode, file, pprintAll)
             file:write("{\\color{red}{")
          else            
             file:write("{")
-         end
-
-         if sequentNode:getInformation("repetition") then
-            file:write("{\\color{green}{")
-         else            
-            file:write("{")
-         end          
+         end        
          
          if nodeEsq ~= nil then
             for i, edge in ipairs(nodeEsq:getEdgesOut()) do
@@ -153,14 +148,16 @@ local function printSequent(sequentNode, file, pprintAll)
                   formula = "("..formula..")^{"..HelperModule.getOriginalFormulaCopied(edge:getInformation("reference")):getLabel().."}"
                end
 
-               ret = ret..formula
-               
-               ret = ret..","
+               if not alreadyPrintedFormulas:contains(formula) then
+                  ret = ret..formula
+                  alreadyPrintedFormulas:add(formula)
+                  ret = ret..","
+               end              
             end    
             ret = ret:sub(1, ret:len()-1)
          end
 
-         ret = ret.." "..opSeq.tex.."_{"..seqNumber.."} "
+         ret = ret.." \\boldsymbol{"..opSeq.tex.."_{"..seqNumber.."}} "
 
          edge = nil
          for i, edge in ipairs(nodeDir:getEdgesOut()) do
@@ -180,13 +177,7 @@ local function printSequent(sequentNode, file, pprintAll)
             file:write("}}")
          else            
             file:write("}")
-         end
-
-         if sequentNode:getInformation("repetition") then
-            file:write("}}")
-         else            
-            file:write("}")
-         end           
+         end     
 
          --serializedSequent = serializedSequent..ret.." "  
 
@@ -256,11 +247,13 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll)
       local seq = goalEdge[1]:getDestino()
 
       file:write("\\documentclass[landscape]{article}\n\n")
+
+      file:write("\\usepackage{amsbsy}\n")
       file:write("\\usepackage{color}\n")
       file:write("\\usepackage{proof}\n")
       file:write("\\usepackage{qtree}\n\n")
       file:write("\\begin{document}\n")
-      file:write("$$\n")
+      file:write("$$\n")      
 
       printSequent(seq, file, pprintAll)
       
@@ -270,7 +263,7 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll)
       --logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
       --countGraphElements()
 
-      file:write("\n$$")   
+      file:write("\n$$")
       file:write("\\end{document}\n")
       file:close()
 
