@@ -141,23 +141,27 @@ local function printSequent(sequentNode, file, pprintAll)
          
          if nodeEsq ~= nil then
             for i, edge in ipairs(nodeEsq:getEdgesOut()) do
-               local formula = printFormula(edge:getDestino(), shortedFormula)
+               local formulaNode = edge:getDestino()
+               local atomicReference = edge:getInformation("reference") 
+               
+               local formulaAsStr = printFormula(formulaNode, shortedFormula)
+               local contextAsStr = HelperModule.getOriginalFormulaCopied(formulaNode):getLabel()
 
-               if edge:getInformation("reference") ~= nil then
-                  local atomicReference = edge:getInformation("reference")                  
-                  formula = "("..formula..")^{"..HelperModule.getOriginalFormulaCopied(edge:getInformation("reference")):getLabel().."}"
+               if atomicReference ~= nil then                                   
+                  formulaAsStr = "("..formulaAsStr..")^{"..atomicReference:getLabel().."}"
+                  contextAsStr = contextAsStr..atomicReference:getLabel()
                end
-
-               if not alreadyPrintedFormulas:contains(formula) then
-                  ret = ret..formula
-                  alreadyPrintedFormulas:add(formula)
+                                        
+               if not alreadyPrintedFormulas:contains(contextAsStr) then
+                  ret = ret..formulaAsStr
+                  alreadyPrintedFormulas:add(contextAsStr)
                   ret = ret..","
                end              
             end    
             ret = ret:sub(1, ret:len()-1)
          end
 
-         ret = ret.." \\boldsymbol{"..opSeq.tex.."_{"..seqNumber.."}} "
+         ret = ret.." {\\color{blue}"..opSeq.tex.."_{"..seqNumber.."}} "
 
          edge = nil
          for i, edge in ipairs(nodeDir:getEdgesOut()) do
