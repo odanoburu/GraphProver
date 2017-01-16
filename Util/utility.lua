@@ -20,20 +20,24 @@ function os.capture()
    return s
 end
 
-function os.showProofOnBrowser(nameSufix)
+function os.showProofOnBrowser(nameSufix, extension)
 
    if nameSufix == nil then nameSufix = "" end
-   
-   --os.execute("pdflatex -output-directory=aux aux/prooftree.tex")
-   
-   os.execute("htlatex aux/prooftree"..nameSufix..".tex '' '' -daux/"  )
+
+   if extension == nil then extension = "pdf" end
+
+   if extension == "pdf" then
+      os.execute("pdflatex -output-directory=aux aux/prooftree.tex")
+   else
+      os.execute("htlatex aux/prooftree"..nameSufix..".tex '' '' -daux/"  )
+   end
    
    if os.capture() == "Darwin" then
-      os.execute("open aux/prooftree"..nameSufix..".html")                                        
+      os.execute("open aux/prooftree"..nameSufix.."."..extension)                                        
    elseif os.capture() == "Linux" then
-      os.execute("xdg-open aux/prooftree"..nameSufix..".html")
+      os.execute("xdg-open aux/prooftree"..nameSufix.."."..extension)
    else
-      os.execute("start aux/prooftree"..nameSufix..".html")
+      os.execute("start aux/prooftree"..nameSufix.."."..extension)
    end
 
    os.execute("rm -f prooftree*")  

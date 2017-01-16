@@ -1032,6 +1032,7 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                      applyRestartRule(seq, formulaNode)
                   end                                    
                else
+                  seq:setInformation("noMoreExpandable", true)
                   goalsList = {}
                   nstep = 0
                   logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
