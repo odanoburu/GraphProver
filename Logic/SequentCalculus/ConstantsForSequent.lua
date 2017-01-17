@@ -66,3 +66,8 @@ lblRuleRestart = "restart"
 -- Side definitions
 leftSide = "Left"
 rightSide = "Right"
+
+-- Tex Print Options
+texOutputHtml = "html"
+texOutputPDF = "pdf"
+defaultOutput = texOutputPDF

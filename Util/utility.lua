@@ -24,10 +24,10 @@ function os.showProofOnBrowser(nameSufix, extension)
 
    if nameSufix == nil then nameSufix = "" end
 
-   if extension == nil then extension = "pdf" end
+   if extension == nil then extension = defaultOutput end
 
    if extension == "pdf" then
-      os.execute("pdflatex -output-directory=aux aux/prooftree.tex")
+      os.execute("pdflatex -output-directory=aux aux/prooftree"..nameSufix..".tex")
    else
       os.execute("htlatex aux/prooftree"..nameSufix..".tex '' '' -daux/"  )
    end

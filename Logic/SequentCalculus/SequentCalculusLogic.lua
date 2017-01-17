@@ -465,7 +465,9 @@ local function isExpandable(sequentNode)
          end         
 
          local i = #edgesFormulasInsideBracket
-         while i >= 1 do 
+         while i >= 1 do
+         --local i = 1
+         --if #edgesFormulasInsideBracket > 0 then
             logger:info("isExpandable - "..sequentNode:getLabel().." Inside Bracket: "..edgesFormulasInsideBracket[i]:getDestino():getLabel())
             if not restartedFormulas:contains(edgesFormulasInsideBracket[i]:getDestino()) then
                logger:info("isExpandable - "..sequentNode:getLabel().." Restarted Formulas não contém "..edgesFormulasInsideBracket[i]:getDestino():getLabel())
@@ -473,7 +475,7 @@ local function isExpandable(sequentNode)
                ret = true
                rule = lblRuleRestart
                formulaNode = edgesFormulasInsideBracket[i]:getDestino()
-               break
+               --break
             end
             i = i - 1
          end
@@ -717,9 +719,7 @@ function applyRestartRule(sequentNode, formulaNode)
       if listEdgesOut[i]:getLabel() ~= "0" then
          if listEdgesOut[i]:getInformation("reference") == nil then
             listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
-         end 
-
-         if listEdgesOut[i]:getInformation("reference") == formulaNode then
+         elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
             listEdgesOut[i]:setInformation("reference", nil)                      
          end
       end
@@ -728,17 +728,20 @@ function applyRestartRule(sequentNode, formulaNode)
     -- Right Side
    local sequentRightNode = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()   
    local newEdgeBracket = SequentEdge:new("1", sequentRightNode, newBracketNode)
+
    graph:addEdge(newEdgeBracket)
 
-   if formulaOutsideInBracketEdge == nil then
-      local newBracketFormulaEdge = SequentEdge:new(""..contBracketFormulas, newBracketNode, formulaOutsideBracketEdge:getDestino())
-      contBracketFormulas = contBracketFormulas + 1
-      graph:addEdge(newBracketFormulaEdge)
+   if formulaOutsideInBracketEdge ~= nil then
+      graph:removeEdge(formulaOutsideInBracketEdge)
    end
    
-   graph:removeEdge(formulaOutsideBracketEdge)
+   graph:removeEdge(formulaOutsideBracketEdge)   
    graph:removeEdge(formulaInBracketEdge)
-   
+
+   local newBracketFormulaEdge = SequentEdge:new(""..contBracketFormulas, newBracketNode, formulaOutsideBracketEdge:getDestino())
+   contBracketFormulas = contBracketFormulas + 1
+   graph:addEdge(newBracketFormulaEdge)
+     
    local edgeSequentToFormula = SequentEdge:new("0", newSequentNode:getEdgeOut(lblEdgeDir):getDestino(), formulaNode)
    graph:addEdge(edgeSequentToFormula)
   
@@ -1014,7 +1017,7 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                end
             end
             
-            if tonumber(k:sub(4)) == 36 then
+            if tonumber(k:sub(4)) == 10 then
                local x = 10
             end          
 
@@ -1032,7 +1035,7 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                      applyRestartRule(seq, formulaNode)
                   end                                    
                else
-                  seq:setInformation("noMoreExpandable", true)
+                  markCounterExamplePath(seq) 
                   goalsList = {}
                   nstep = 0
                   logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
@@ -1051,7 +1054,6 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
       nstep = 0
       sufix = sufix + 1
       PrintModule.printProof(graph, tostring(sufix))
-      os.showProofOnBrowser(tostring(sufix))
       logGoalsList()
       logger:info("expandAll - All sequents expanded!")
       ret = true

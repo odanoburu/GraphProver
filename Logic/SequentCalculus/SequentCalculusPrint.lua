@@ -237,10 +237,12 @@ end
 
 -- Public functions
 
-function PrintModule.printProof(agraph, nameSufix, pprintAll)
+function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
    graph = agraph
 
    if nameSufix == nil then nameSufix = "" end
+
+   if texOutput == nil then texOutput = defaultOutput end
    
    local file = io.open("aux/prooftree"..nameSufix..".tex", "w")   
    local goalEdge = agraph:getNode(lblNodeGG):getEdgesOut()
@@ -256,9 +258,13 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll)
       file:write("\\usepackage{color}\n")
       file:write("\\usepackage{proof}\n")
       file:write("\\usepackage{qtree}\n\n")
-      file:write("\\usepackage{incgraph}\n\n")
+      if texOutput == texOutputPDF then
+         file:write("\\usepackage{incgraph}\n\n")
+      end 
       file:write("\\begin{document}\n")
-      file:write("\\begin{inctext}\n")
+      if texOutput == texOutputPDF then
+         file:write("\\begin{inctext}\n")
+      end
       file:write("$$\n")      
 
       printSequent(seq, file, pprintAll)
@@ -270,12 +276,15 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll)
       --countGraphElements()
 
       file:write("\n$$\n")
-      file:write("\\end{inctext}\n")
+      if texOutput == texOutputPDF then
+         file:write("\\end{inctext}\n")
+      end
       file:write("\\end{document}\n")
       file:close()
 
       ret = true
+      os.showProofOnBrowser(nameSufix)
    end
-
+  
    return ret
 end
