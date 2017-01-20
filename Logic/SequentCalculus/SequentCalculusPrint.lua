@@ -88,13 +88,13 @@ local function printFormula(formulaNode, shortedFormula)
 
 end
 
-local function printSequent(sequentNode, file, pprintAll)
+local function printSequent(sequentNode, file)
    local ret = ""
    local edge, nodeEsq, nodeDir = nil
    local deductions = {}
    local j = 1
    local rule = ""
-   local shortedFormula = false
+   local shortedFormula = true
    local alreadyPrintedFormulas = Set:new()
 
    if sequentNode ~= nil then
@@ -121,117 +121,87 @@ local function printSequent(sequentNode, file, pprintAll)
             j = j+1
          end                    
       end
-     
-      if not sequentNode:getInformation("wasPrinted") or pprintAll then        
-         if #deductions > 0 then
-            file:write("\\infer["..rule.."]\n")
+
+      if #deductions > 0 then
+         file:write("\\prftree[r]{$"..rule.."$}\n")
+      end      
+
+      -- Premisses
+
+      --serializedSequent = serializedSequent..ret.." "  
+      if #deductions > 0 then
+         --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
+         --serializedSequent = serializedSequent.."|"
+         file:write("{\n")
+
+         for i, edge in ipairs(deductions) do               
+            printSequent(deductions[i], file)
          end
 
-         if sequentNode:getInformation("isAxiom") then
-            file:write("{\\color{blue}{")
-         else            
-            file:write("{")
-         end
-
-         if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
-            file:write("{\\color{red}{")
-         else            
-            file:write("{")
-         end        
-         
-         if nodeEsq ~= nil then
-            for i, edge in ipairs(nodeEsq:getEdgesOut()) do
-               local formulaNode = edge:getDestino()
-               local atomicReference = edge:getInformation("reference") 
-               
-               local formulaAsStr = printFormula(formulaNode, shortedFormula)
-               local contextAsStr = HelperModule.getOriginalFormulaCopied(formulaNode):getLabel()
-
-               if atomicReference ~= nil then                                   
-                  formulaAsStr = "("..formulaAsStr..")^{"..atomicReference:getLabel().."}"
-                  contextAsStr = contextAsStr..atomicReference:getLabel()
-               end
-                                        
-               if not alreadyPrintedFormulas:contains(contextAsStr) then
-                  ret = ret..formulaAsStr
-                  alreadyPrintedFormulas:add(contextAsStr)
-                  ret = ret..","
-               end              
-            end    
-            ret = ret:sub(1, ret:len()-1)
-         end
-
-         ret = ret.." {\\color{blue}"..opSeq.tex.."_{"..seqNumber.."}} "
-
-         edge = nil
-         for i, edge in ipairs(nodeDir:getEdgesOut()) do
-            ret = ret..printFormula(edge:getDestino(), shortedFormula)
-            ret = ret..","
-         end       
-         ret = ret:sub(1, ret:len()-1)     
-
-         file:write(ret)
-         if sequentNode:getInformation("isAxiom") then
-            file:write("}}")
-         else            
-            file:write("}")
-         end
-
-         if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
-            file:write("}}")
-         else            
-            file:write("}")
-         end     
-
-         --serializedSequent = serializedSequent..ret.." "  
-
-         if #deductions > 0 then
-            --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
-            --serializedSequent = serializedSequent.."|"
-            file:write("\n{\n")
-
-            for i, edge in ipairs(deductions) do               
-               printSequent(deductions[i], file, pprintAll)
-               if #deductions > 1 and i < #deductions then
-                  file:write(" & ")
-               end                 
-            end
-
-            file:write("\n}")
-         end
-      else
-         local close = false
-         if #deductions == 0 then
-            if not sequentNode:getInformation("isAxiom") then
-               file:write("\\infer["..rule.."]\n")
-               file:write("{\\mbox{continuing} "..opSeq.tex.."_{"..seqNumber.."}}")
-               file:write("\n{}")
-               file:write("\\qquad\\qquad\r")
-            end
-         else            
-            for i, edge in ipairs(deductions) do
-               if not deductions[i]:getInformation("wasPrinted") then
-                  file:write("\\infer["..rule.."]\n")
-                  file:write("{\\mbox{continuing} "..opSeq.tex.."_{"..seqNumber.."}}")
-                  file:write("\n{\n")
-                  close = true
-               end
-               
-               printSequent(deductions[i], file, pprintAll)
-               if #deductions > 1 and i < #deductions then
-                  -- file:write(" & ")
-               end
-
-               if close then
-                  file:write("\n}")
-                  file:write("\\qquad\\qquad\r")               
-                  close = false
-               end
-            end
-         end         
+         file:write("\n}\n")
       end
+
+      -- Conclusion
+
+      if sequentNode:getInformation("isAxiom") then
+         file:write("{\\color{blue}{")
+      else            
+         file:write("{")
+      end
+
+      if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
+         file:write("{\\color{red}{")
+      else            
+         file:write("{")
+      end      
+
+      -- Left side
+      if nodeEsq ~= nil then
+         for i, edge in ipairs(nodeEsq:getEdgesOut()) do
+            local formulaNode = edge:getDestino()
+            local atomicReference = edge:getInformation("reference") 
             
-      sequentNode:setInformation("wasPrinted", true)
+            local formulaAsStr = printFormula(formulaNode, shortedFormula)
+            local contextAsStr = HelperModule.getOriginalFormulaCopied(formulaNode):getLabel()
+
+            if atomicReference ~= nil then                                   
+               formulaAsStr = "("..formulaAsStr..")^{"..atomicReference:getLabel().."}"
+               contextAsStr = contextAsStr..atomicReference:getLabel()
+            end
+            
+            if not alreadyPrintedFormulas:contains(contextAsStr) then
+               ret = ret..formulaAsStr
+               alreadyPrintedFormulas:add(contextAsStr)
+               ret = ret..","
+            end              
+         end    
+         ret = ret:sub(1, ret:len()-1)
+      end
+
+      -- Sequent Symbol
+      ret = ret.." {\\color{blue}"..opSeq.tex.."_{"..seqNumber.."}} "
+
+
+      -- Right Side
+      edge = nil
+      for i, edge in ipairs(nodeDir:getEdgesOut()) do
+         ret = ret..printFormula(edge:getDestino(), shortedFormula)
+         ret = ret..","
+      end       
+      ret = ret:sub(1, ret:len()-1)     
+
+      file:write(ret)
+      if sequentNode:getInformation("isAxiom") then
+         file:write("}}")
+      else            
+         file:write("}")
+      end
+
+      if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
+         file:write("}}")
+      else            
+         file:write("}")
+      end
    end
 end
 
@@ -257,7 +227,9 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
       file:write("\\usepackage{amsbsy}\n")
       file:write("\\usepackage{color}\n")
       file:write("\\usepackage{proof}\n")
-      file:write("\\usepackage{qtree}\n\n")
+      file:write("\\usepackage{qtree}\n")
+      file:write("\\usepackage[ND,SEQ]{prftree}\n\n")
+      
       if texOutput == texOutputPDF then
          file:write("\\usepackage{incgraph}\n\n")
       end 
@@ -267,7 +239,7 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
       end
       file:write("$$\n")      
 
-      printSequent(seq, file, pprintAll)
+      printSequent(seq, file)
       
       --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
       --serializedSequent = serializedSequent:gsub("\\to", "→")
