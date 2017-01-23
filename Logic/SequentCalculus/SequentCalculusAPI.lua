@@ -253,34 +253,16 @@ function run()
    clear()
 end
 
-function run_seq(seq)
-   local seqNode = finds(seq)
-
-   assert(seqNode, "Sequent not found!")
-   
-   LogicModule.expandAll(graph, nil, seqNode)
-   clear()   
-end
-
 function step(pstep)
    graph = LogicModule.getGraph()
    LogicModule.expandAll(graph, pstep)
    clear()
 end
 
-function step_seq(pstep, seq)
-   local seqNode = finds(seq)
-
-   assert(seqNode, "Sequent not found!")
-   
-   LogicModule.expandAll(graph, pstep, seqNode)
-   clear()   
-end
-
 function print_all()
    graph = LogicModule.getGraph()
-   PrintModule.printProof(graph, "", true)
-   os.showProofOnBrowser()   
+   PrintModule.printProof(graph)
+   os.showProo()   
    clear()   
 end
 

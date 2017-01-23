@@ -277,6 +277,11 @@ local function degreeOfFormula(formulaNode)
    end
 end
 
+local function compareGoalsListWeight(goalEntryA, goalEntryB)
+  
+  return goalEntryB.weight > goalEntryA.weightA
+end
+
 local function compareFormulasDegree(formulaA, formulaB)
   
    local countFormulaA, countFormulaB
@@ -872,7 +877,7 @@ function applyImplyLeftRule(sequentNode, formulaNode)
    
    local lweight = goalsList[sequentNode:getLabel()].weight
    goalsList[NewSequentNode1:getLabel()] = {goal = generateNewGoal(NewSequentNode1), weight = lweight}   
-   goalsList[NewSequentNode2:getLabel()] = {goal = generateNewGoal(NewSequentNode2), weight = lweight}
+   goalsList[NewSequentNode2:getLabel()] = {goal = generateNewGoal(NewSequentNode2), weight = lweight+1}
    sequentNode:setInformation("isExpanded", true)
    logger:info("applyImplyLeftRule - "..sequentNode:getLabel().." was expanded")
 
@@ -970,21 +975,24 @@ function LogicModule.expandNode(agraph, sequentNode, formulaNode)
    return true, graph      
 end
 
-function LogicModule.expandAll(agraph, pstep, sequentNode)
+function LogicModule.expandAll(agraph, pstep)
 
    local isAllExpanded = true
    local k, goalEntry, focusedFormula
 
-   if sequentNode then
-      resetGoalsWeight(0)
-      goalsList[sequentNode:getLabel()].weight = 1
-   end
+   -- Used to expand from a sequent
+   -- if sequentNode then
+   --    resetGoalsWeight(0)
+   --    [sequentNode:getLabel()].weight = 1
+   -- end
 
-   graph = agraph               
+   graph = agraph
+
+   table.sort(goalsList, compareGoalsListWeight)   
    
    for k,goalEntry in pairs(goalsList) do
 
-      if goalEntry.weight == 1 then
+      --if goalEntry.weight == 1 then
       
          local seq = goalEntry.goal:getSequent()
 
@@ -1016,9 +1024,10 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                   nstep = nstep + 1
                end
             end
-            
+
+            -- to stop debug at a specific point
             if tonumber(k:sub(4)) == 10 then
-               local x = 10
+               local x = 7
             end          
 
             if not verifyAxiom(seq) then
@@ -1033,30 +1042,35 @@ function LogicModule.expandAll(agraph, pstep, sequentNode)
                      applyImplyLeftRule(seq, formulaNode)
                   elseif rule == lblRuleRestart then
                      applyRestartRule(seq, formulaNode)
-                  end                                    
+                  end
+
+                  table.sort(goalsList, compareGoalsListWeight)
                else
                   markCounterExamplePath(seq) 
                   goalsList = {}
                   nstep = 0
                   logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
-                  break                     
+                  --break                     
                end                  
-            end        
+            end
+            break
          end
-      end      
+      --end      
    end
 
    local ret
-   if not isAllExpanded and nstep ~= 0 then
-      graph = LogicModule.expandAll(graph, pstep)
-      ret = false
-   else
+   if isAllExpanded or nstep == 0 then
       nstep = 0
       sufix = sufix + 1
       PrintModule.printProof(graph, tostring(sufix))
       logGoalsList()
-      logger:info("expandAll - All sequents expanded!")
-      ret = true
+      if isAllExpanded then
+         logger:info("expandAll - All sequents expanded!")
+      end
+      ret = true      
+   else
+      graph = LogicModule.expandAll(graph, pstep)
+      ret = false
    end
 
    return graph, ret 

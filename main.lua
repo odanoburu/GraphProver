@@ -82,7 +82,7 @@ end
 
 --- Um algoritmo massa-mola + carca eletrica aplicado ao grafo.
 local function applyForces(graph)
-
+   
    local nodes = graph:getNodes()
    local edges = graph:getEdges()
 
@@ -330,7 +330,7 @@ local function printProof()
       ret = PrintModule.printProof(proofGraph)
 
       if ret then
-         os.showProofOnBrowser()
+         os.showProof()
       end
    end  
 end
@@ -541,6 +541,10 @@ local function dragNodeOrScreenOrSelectFocusEvent()
 end
 
 -- Public functions: Love events
+function love.resize(w, h)
+   windowWidth = w
+   windowHeight = h
+end
 
 function love.keypressed(key)
    if key == "a" and love.keyboard.isDown("lctrl") then
@@ -601,7 +605,7 @@ function love.textinput(t)
 end
 
 function love.load(arg)  
-   -- Prepare to debug in ZeroBrain
+   -- Prepare to debug with ZeroBrane
    if arg[#arg] == "-debug" then
       require("mobdebug").start()
    end
@@ -615,6 +619,7 @@ function love.load(arg)
    love.graphics.setColor(0, 0, 0) -- Black Color
    font = love.graphics.newFont(11)
    isDragging = false
+
    -- TODO remover a referência a focus?
    isChoosingFocus = false
    isExpandingFormula = false
@@ -631,8 +636,4 @@ function love.draw()
    printProofButtonEvent()            
    drawGraphEvent(proofGraph)
    dragNodeOrScreenOrSelectFocusEvent()         
-end
-
-function graph()
-   drawGraphEvent(proofGraph)
 end

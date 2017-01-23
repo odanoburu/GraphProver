@@ -70,4 +70,6 @@ rightSide = "Right"
 -- Tex Print Options
 texOutputHtml = "html"
 texOutputPDF = "pdf"
-defaultOutput = texOutputHtml
+defaultOutput = texOutputPDF
+printShortedFormulas = true
+

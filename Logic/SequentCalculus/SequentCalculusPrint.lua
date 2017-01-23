@@ -26,7 +26,7 @@ local function printFormula(formulaNode, shortedFormula)
    local formulaNumber = formulaNode:getLabel():sub(6,formulaNode:getLabel():len())
    local formulaNumberCopied = nil
    
-   local originalFormula = HelperModule.getOriginalFormulaCopied(formulaNode) --formulaNode:getInformation("originalFormula")
+   local originalFormula = HelperModule.getOriginalFormulaCopied(formulaNode)
    if originalFormula ~= nil then
       formulaNumber = originalFormula:getLabel():sub(6,formulaNode:getLabel():len())
       formulaNumberCopied = formulaNode:getLabel():sub(6,formulaNode:getLabel():len())
@@ -45,7 +45,7 @@ local function printFormula(formulaNode, shortedFormula)
          ret = ret.."{\\color{red}[}"
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
-            ret = ret..printFormula(subformula, shortedFormula).."," --"^{"..edge:getLabel().."},"
+            ret = ret..printFormula(subformula, shortedFormula)..","
          end
          ret = ret:sub(1, ret:len()-1)
          ret = ret.."{\\color{red}]}"
@@ -60,9 +60,9 @@ local function printFormula(formulaNode, shortedFormula)
          end
 
          if originalFormula ~= nil then
-            ret = ret.." "..opImp.tex.."_{"..formulaNumber.."}^{"..formulaNumberCopied.."}"
+            ret = ret..opImp.tex.."_{"..formulaNumber.."}^{"..formulaNumberCopied.."}"
          else
-            ret = ret.." "..opImp.tex.."_{"..formulaNumber.."}"
+            ret = ret..opImp.tex.."_{"..formulaNumber.."}"
          end         
 
          if not shortedFormula then
@@ -88,18 +88,19 @@ local function printFormula(formulaNode, shortedFormula)
 
 end
 
-local function printSequent(sequentNode, file)
+local function printSequent(sequentNode, file, printOnlyOpenBranch)
    local ret = ""
    local edge, nodeEsq, nodeDir = nil
    local deductions = {}
    local j = 1
    local rule = ""
-   local shortedFormula = true
+   local shortedFormula = printShortedFormulas
    local alreadyPrintedFormulas = Set:new()
 
    if sequentNode ~= nil then
 
-      if tonumber(sequentNode:getLabel():sub(4)) == 8 then
+      -- to stop debug at a specific point
+      if tonumber(sequentNode:getLabel():sub(4)) == 4 then
          local x = 10
       end          
 
@@ -132,24 +133,30 @@ local function printSequent(sequentNode, file)
       if #deductions > 0 then
          --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
          --serializedSequent = serializedSequent.."|"
-         file:write("{\n")
-
-         for i, edge in ipairs(deductions) do               
-            printSequent(deductions[i], file)
-         end
-
-         file:write("\n}\n")
+         
+         for i, nextSeqNode in ipairs(deductions) do           
+            if printOnlyOpenBranch then
+               -- Print dots in the branch that is not totally expanded or is closed.
+               if nextSeqNode:getInformation("isProved") ==nil or sequentNode:getInformation("isProved") then
+                  file:write("{\\vdots}\n")               
+               else
+                  file:write("{\n")            
+                  printSequent(deductions[i], file, printOnlyOpenBranch)
+                  file:write("\n}\n")
+               end
+            else
+               file:write("{\n")            
+               printSequent(deductions[i], file, printOnlyOpenBranch)
+               file:write("\n}\n")               
+            end            
+         end         
       end
 
       -- Conclusion
 
       if sequentNode:getInformation("isAxiom") then
          file:write("{\\color{blue}{")
-      else            
-         file:write("{")
-      end
-
-      if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
+      elseif sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
          file:write("{\\color{red}{")
       else            
          file:write("{")
@@ -164,8 +171,12 @@ local function printSequent(sequentNode, file)
             local formulaAsStr = printFormula(formulaNode, shortedFormula)
             local contextAsStr = HelperModule.getOriginalFormulaCopied(formulaNode):getLabel()
 
-            if atomicReference ~= nil then                                   
-               formulaAsStr = "("..formulaAsStr..")^{"..atomicReference:getLabel().."}"
+            if atomicReference ~= nil then
+               if shortedFormula then
+                  formulaAsStr = "("..formulaAsStr..")^{"..atomicReference:getLabel().."}"
+               else
+                  formulaAsStr = formulaAsStr.."^{"..atomicReference:getLabel().."}"
+               end
                contextAsStr = contextAsStr..atomicReference:getLabel()
             end
             
@@ -191,30 +202,25 @@ local function printSequent(sequentNode, file)
       ret = ret:sub(1, ret:len()-1)     
 
       file:write(ret)
-      if sequentNode:getInformation("isAxiom") then
+      if sequentNode:getInformation("isAxiom") or
+         ( sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved")) then
          file:write("}}")
       else            
          file:write("}")
       end
 
-      if sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
-         file:write("}}")
-      else            
-         file:write("}")
-      end
    end
 end
 
 -- Public functions
 
-function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
-   graph = agraph
+function PrintModule.printProof(agraph, nameSufix)
 
    if nameSufix == nil then nameSufix = "" end
-
-   if texOutput == nil then texOutput = defaultOutput end
    
-   local file = io.open("aux/prooftree"..nameSufix..".tex", "w")   
+   local texOutput = defaultOutput
+   
+   local file = io.open("aux/prooftree"..nameSufix..".tex", "w")
    local goalEdge = agraph:getNode(lblNodeGG):getEdgesOut()
    local ret = false
 
@@ -224,11 +230,10 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
 
       file:write("\\documentclass[landscape]{article}\n\n")
 
+      file:write("\\usepackage{etex}\n")      
       file:write("\\usepackage{amsbsy}\n")
       file:write("\\usepackage{color}\n")
-      file:write("\\usepackage{proof}\n")
-      file:write("\\usepackage{qtree}\n")
-      file:write("\\usepackage[ND,SEQ]{prftree}\n\n")
+      file:write("\\usepackage[ND,SEQ]{prftree}\n")
       
       if texOutput == texOutputPDF then
          file:write("\\usepackage{incgraph}\n\n")
@@ -237,9 +242,21 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
       if texOutput == texOutputPDF then
          file:write("\\begin{inctext}\n")
       end
-      file:write("$$\n")      
 
-      printSequent(seq, file)
+      if seq:getEdgeOut(lblEdgeDeducao) ~= nil then
+         file:write("$$\n")
+      else
+         file:write("$")
+      end
+
+      -- If Seq0 is false, print only the open branch
+      if seq:getInformation("isProved") ~= nil and not seq:getInformation("isProved") then
+         printOnlyOpenBranch = true
+      else
+         printOnlyOpenBranch = false         
+      end
+      
+      printSequent(seq, file, printOnlyOpenBranch)
       
       --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
       --serializedSequent = serializedSequent:gsub("\\to", "→")
@@ -247,7 +264,12 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
       --logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
       --countGraphElements()
 
-      file:write("\n$$\n")
+      if seq:getEdgeOut(lblEdgeDeducao) ~= nil then
+         file:write("\n$$\n")
+      else
+         file:write("$\n")
+      end
+
       if texOutput == texOutputPDF then
          file:write("\\end{inctext}\n")
       end
@@ -255,7 +277,7 @@ function PrintModule.printProof(agraph, nameSufix, pprintAll, texOutput)
       file:close()
 
       ret = true
-      os.showProofOnBrowser(nameSufix)
+      os.showProof(nameSufix)
    end
   
    return ret
