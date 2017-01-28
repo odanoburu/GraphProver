@@ -10,6 +10,16 @@
 --
 -------------------------------------------------------------------------------
 
+local function openFile(fileName)
+   if os.capture() == "Darwin" then
+      os.execute("open aux/"..fileName)                                        
+   elseif os.capture() == "Linux" then
+      os.execute("xdg-open aux/"..fileName)
+   else
+      os.execute("start aux/"..fileName)
+   end
+end
+
 function os.capture()
    local f = assert(io.popen('uname', 'r'))
    local s = assert(f:read('*a'))
@@ -18,6 +28,14 @@ function os.capture()
    s = string.gsub(s, '%s+$', '')
    s = string.gsub(s, '[\n\r]+', ' ')
    return s
+end
+
+function os.showGraph()
+   
+   if f ~= nil then
+      os.execute("sfdp -x -Goverlap=scale -Tsvg aux/proofgraph.dot > aux/proofgraph.svg")
+      openFile("proofgraph.svg")
+   end
 end
 
 function os.showProof(nameSufix)
@@ -30,13 +48,7 @@ function os.showProof(nameSufix)
       os.execute("htlatex aux/prooftree"..nameSufix..".tex '' '' -daux/"  )
    end
    
-   if os.capture() == "Darwin" then
-      os.execute("open aux/prooftree"..nameSufix.."."..defaultOutput)                                        
-   elseif os.capture() == "Linux" then
-      os.execute("xdg-open aux/prooftree"..nameSufix.."."..defaultOutput)
-   else
-      os.execute("start aux/prooftree"..nameSufix.."."..defaultOutput)
-   end
+   openFile("prooftree"..nameSufix.."."..defaultOutput)
 
    os.execute("rm -f prooftree*")  
 end

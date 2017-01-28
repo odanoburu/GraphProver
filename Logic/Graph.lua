@@ -248,3 +248,39 @@ function Graph:removeNode(node)
    return isNodeDeleted
 end
 
+local function generateDotOfEdge(node)
+
+   local ret = ""
+   
+   for i,e in ipairs(node:getEdgesOut()) do
+      ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
+      ret = ret..generateDotOfEdge(e:getDestino())
+   end
+   
+   return ret
+
+end
+
+function Graph:toString()
+
+   local ret = ""
+
+   if self.root ~= nil then
+
+      ret = "graph {\n"   
+
+      if #self.root:getEdgesOut() == 0 then
+         ret = ret.."        "..self.root
+      else
+         for i, v in ipairs(self.root:getEdgesOut()) do
+            ret = ret..generateDotOfEdge(v:getDestino())
+         end
+      end
+      
+      ret = ret.."}"
+
+   end   
+
+   return ret
+   
+end

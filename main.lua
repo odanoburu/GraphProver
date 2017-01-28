@@ -18,6 +18,7 @@ require 'logging.file'
 require 'io' 
 
 -- Variáveis globais do modulo
+local inspect = require "inspect"
 local logger, font
 local proofGraph, proofNode, nodeExpanding
 local isDragging, isExpandingFormula
@@ -25,6 +26,7 @@ local FPSCAP = 60
 local text, input_formula, input_command = ""
 local editingState = NoInputing
 local formulas
+local total_kinetic_energy = 0
 
 -- Private functions
 
@@ -82,7 +84,10 @@ end
 
 --- Um algoritmo massa-mola + carca eletrica aplicado ao grafo.
 local function applyForces(graph)
-   
+   logger:debug("applyForces- Begin of applyForces function")
+
+--   logger:debug("applyForces - total_kinetic_energy in the begin of the function: "..total_kinetic_energy)
+
    local nodes = graph:getNodes()
    local edges = graph:getEdges()
 
@@ -92,19 +97,36 @@ local function applyForces(graph)
       nodes[i]:setInformation("m",0.5)
    end
 
-   repeat               
+
+   if total_kinetic_energy < 100 then
       total_kinetic_energy = 0
+      return
+   end
+   
+   
+--   repeat
+--      total_kinetic_energy = 0
+      
       for i=1, #nodes do
+
+         local Fx = 0.0
+         local Fy = 0.0
+         local Vx = 0.0
+         local Vy = 0.0
          
-         nodes[i]:setInformation("Fx",0.0)
-         nodes[i]:setInformation("Fy",0.0)
+         nodes[i]:setInformation("Fx",Fx)
+         nodes[i]:setInformation("Fy",Fy)
          for j=1, #nodes do
             if i ~= j then
                dx = nodes[i]:getPositionX() - nodes[j]:getPositionX()
                dy = nodes[i]:getPositionY() - nodes[j]:getPositionY()
                rsq = (dx*dx) + (dy*dy)
-               nodes[i]:setInformation("Fx",(nodes[i]:getInformation("Fx")+(100*dx/rsq)))
-               nodes[i]:setInformation("Fy",(nodes[i]:getInformation("Fy")+(100*dy/rsq)))
+
+               Fx = nodes[i]:getInformation("Fx")+(100*dx/rsq)
+               nodes[i]:setInformation("Fx",Fx)
+
+               Fy = nodes[i]:getInformation("Fy")+(100*dy/rsq)
+               nodes[i]:setInformation("Fy",Fy)
             end
          end
 
@@ -128,19 +150,41 @@ local function applyForces(graph)
 
                dx = Xj - Xi
                dy = Yj - Yi
-               nodes[i]:setInformation("Fx", nodes[i]:getInformation("Fx")+(0.06*dx))
-               nodes[i]:setInformation("Fy", nodes[i]:getInformation("Fy")+(0.06*dy))
+
+               Fx = nodes[i]:getInformation("Fx")+(0.06*dx)
+               nodes[i]:setInformation("Fx", Fx)
+
+               Fy = nodes[i]:getInformation("Fy")+(0.06*dy)
+               nodes[i]:setInformation("Fy", Fy)
             end
          end
-         nodes[i]:setInformation("Vx", (nodes[i]:getInformation("Vx")+(nodes[i]:getInformation("Fx")*0.85)))
-         nodes[i]:setInformation("Vy", (nodes[i]:getInformation("Vy")+(nodes[i]:getInformation("Fy")*0.85)))
          
-         nodes[i]:setPositionX(nodes[i]:getPositionX()+nodes[i]:getInformation("Vx"))
-         nodes[i]:setPositionY(nodes[i]:getPositionY()+nodes[i]:getInformation("Vy"))
+         Vx = nodes[i]:getInformation("Vx")+(nodes[i]:getInformation("Fx")*0.85)
+         Vy = nodes[i]:getInformation("Vy")+(nodes[i]:getInformation("Fy")*0.85)
 
+         nodes[i]:setInformation("Vx", Vx)
+         nodes[i]:setPositionX(nodes[i]:getPositionX()+nodes[i]:getInformation("Vx"))
+         nodes[i]:setInformation("Vy", Vy)
+         nodes[i]:setPositionY(nodes[i]:getPositionY()+nodes[i]:getInformation("Vy"))
          total_kinetic_energy = total_kinetic_energy + (nodes[i]:getInformation("m") * ((nodes[i]:getInformation("Vx")^2) + (nodes[i]:getInformation("Vy")^2)))
+         
+         logger:debug("applyForces - Fx: "..nodes[i]:getInformation("Fx"))
+         logger:debug("applyForces - Fy: "..nodes[i]:getInformation("Fy"))                        
+         logger:debug("applyForces - Vx: "..nodes[i]:getInformation("Vx"))
+         logger:debug("applyForces - Vy: "..nodes[i]:getInformation("Vy"))
+         logger:debug("applyForces -  m: "..nodes[i]:getInformation("m"))
+         logger:debug("applyForces - Vx^2: "..nodes[i]:getInformation("Vx")^2)
+         logger:debug("applyForces - Vy^2: "..nodes[i]:getInformation("Vy")^2)         
+         logger:debug("applyForces - total_kinetic_energy (m * (Vx^2 + Vy^2)): "..total_kinetic_energy)
+
+         if total_kinetic_energy < 100 or total_kinetic_energy > 80000000 then
+            total_kinetic_energy = 0
+            logger:debug("applyForces - total_kinetic_energy < 100")
+            break
+         end
+
       end
-   until total_kinetic_energy < 50000
+--   until total_kinetic_energy < 50000
 end
 
 --- Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
@@ -164,6 +208,8 @@ local function prepareGraphToDraw(graph)
       end
    end
 
+
+   total_kinetic_energy = 101
    return graph
 end
 
@@ -233,7 +279,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   --applyForces(graph)
+   applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
@@ -270,6 +316,7 @@ local function proofStarted()
 end
 
 local function expandAll()
+   logger:debug("expandAll - Begin of expandAll function")
    if proofStarted() then
       local graph = LogicModule.expandAll(proofGraph)                    
       proofGraph = prepareGraphToDraw(graph)
@@ -277,6 +324,7 @@ local function expandAll()
 end
 
 local function inputFormula()
+   logger:debug("inputFormula - Begin of inputFormula function")
    editingState = InputingFormula   
   
    text = "Type your formula or choose an example below: "
@@ -513,7 +561,7 @@ local function dragNodeOrScreenOrSelectFocusEvent()
       -- Usuario arrastando um vertice  
    elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
       nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
-      --applyForces(proofGraph)
+      applyForces(proofGraph)
       
     -- Usuario arrastando toda a tela 
    elseif nodeMoving == nil then        

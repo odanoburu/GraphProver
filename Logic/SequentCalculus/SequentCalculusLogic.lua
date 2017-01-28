@@ -178,6 +178,8 @@ local function createGraphSequent(seq_tabela, letters)
    
    local restartedFormulas = Set:new()
    NodeSeq:setInformation("restartedFormulas", restartedFormulas)
+
+   SequentGraph:setRoot(NodeGG)
       
    return SequentGraph
 end

@@ -262,9 +262,17 @@ end
 function print_all()
    graph = LogicModule.getGraph()
    PrintModule.printProof(graph)
-   os.showProo()   
+   os.showProof()   
    clear()   
 end
+
+function pgraph()
+   graph = LogicModule.getGraph()
+   PrintModule.printGraph(graph)
+   os.showGraph()   
+   clear()   
+end
+   
 
 function testc(seq)
    --graph = LogicModule.getGraph()

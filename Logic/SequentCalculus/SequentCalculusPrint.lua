@@ -214,6 +214,18 @@ end
 
 -- Public functions
 
+function PrintModule.printGraph(agraph)
+   local file = io.open("aux/proofgraph.dot", "w")
+
+   local ret = agraph:toString()
+
+   if ret ~= "" then 
+      file:write(ret)
+   end
+
+   file:close()
+end
+
 function PrintModule.printProof(agraph, nameSufix)
 
    if nameSufix == nil then nameSufix = "" end
