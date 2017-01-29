@@ -31,10 +31,11 @@ function os.capture()
 end
 
 function os.showGraph()
+   local f = io.open("aux/proofgraph.dot", "r")
    
    if f ~= nil then
-      os.execute("sfdp -x -Goverlap=scale -Tsvg aux/proofgraph.dot > aux/proofgraph.svg")
-      openFile("proofgraph.svg")
+      os.execute("sfdp -v -x -Goverlap=scale -Tsvg aux/proofgraph.dot > aux/proofgraph.svg")
+      --openFile("proofgraph.svg")
    end
 end
 

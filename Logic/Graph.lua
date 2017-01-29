@@ -248,13 +248,23 @@ function Graph:removeNode(node)
    return isNodeDeleted
 end
 
-local function generateDotOfEdge(node)
+local function generateDotOfNode(node)
 
    local ret = ""
+
+   if node:getInformation("isAxiom") then
+      ret = ret.."        \""..node:getLabel().."\" [fillcolor=blue, style=filled]\n"
+   end 
    
    for i,e in ipairs(node:getEdgesOut()) do
-      ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
-      ret = ret..generateDotOfEdge(e:getDestino())
+      if e:getLabel() == lblEdgeDeducao and
+         e:getDestino():getInformation("isProved") ~= nil and
+         not e:getDestino():getInformation("isProved") then
+         ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\",color=red,penwidth=3.0];\n"
+      else
+         ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
+      end
+      ret = ret..generateDotOfNode(e:getDestino())
    end
    
    return ret
@@ -272,9 +282,9 @@ function Graph:toString()
       if #self.root:getEdgesOut() == 0 then
          ret = ret.."        "..self.root
       else
-         for i, v in ipairs(self.root:getEdgesOut()) do
-            ret = ret..generateDotOfEdge(v:getDestino())
-         end
+         local e = self.root:getEdgesOut()[1]
+         ret = ret.."        \""..e:getOrigem():getLabel().."\" [fillcolor=yellow, style=filled]\n"
+         ret = ret..generateDotOfNode(e:getOrigem())
       end
       
       ret = ret.."}"

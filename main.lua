@@ -383,6 +383,13 @@ local function printProof()
    end  
 end
 
+local function printGraph()
+   if proofStarted() then
+      PrintModule.printGraph(proofGraph)
+      os.showGraph()
+   end  
+end
+
 -- Events functions
 
 local function showInputTextEvent()
@@ -513,6 +520,31 @@ local function printProofButtonEvent()
    love.graphics.printf({{0, 0, 0}, printProofButtonName}, xPos, yPos + 5, xLen, "center")
 end
 
+local function printGraphButtonEvent()
+   local xPos = windowWidth - 60
+   local yPos = 185
+   local xLen = 55
+   local yLen = 40
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
+      if love.mouse.isDown(leftMouseButton) then
+         printGraph()                                   
+         love.timer.sleep(buttonTime)
+      end
+      love.graphics.setColor(100, 100, 200)
+   else
+      love.graphics.setColor(0, 100, 200)
+   end
+   love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
+   love.graphics.setColor(0, 0, 255)
+   love.graphics.setLineStyle("smooth")
+   love.graphics.line(xPos, yPos, xPos, yPos + yLen)
+   love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
+   love.graphics.setColor(255, 255, 255)
+   love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
+   love.graphics.line(xPos, yPos, xPos + xLen, yPos)
+   love.graphics.printf({{0, 0, 0}, printGraphButtonName}, xPos, yPos + 5, xLen, "center")
+end
+
 --- Esta função é chamada pela love.draw.
 -- A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
 -- conforme o botão continuar sendo pressionado e caso o clique tenha sido em um vertice esta função:
@@ -601,6 +633,8 @@ function love.keypressed(key)
       inputFormula()
    elseif key == "p" and love.keyboard.isDown("lctrl") then
       printProof()
+   elseif key == "g" and love.keyboard.isDown("lctrl") then
+      printGraph()      
    elseif key == "t" and love.keyboard.isDown("lctrl") then
       inputCommand()   
    end
@@ -681,7 +715,8 @@ function love.draw()
    expandAllButtonEvent()
    inputFormulaButtonEvent()
    expandFormulaButtonEvent()    
-   printProofButtonEvent()            
+   printProofButtonEvent()
+   printGraphButtonEvent()            
    drawGraphEvent(proofGraph)
    dragNodeOrScreenOrSelectFocusEvent()         
 end
