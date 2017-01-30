@@ -726,7 +726,9 @@ function applyRestartRule(sequentNode, formulaNode)
       if listEdgesOut[i]:getLabel() ~= "0" then
          if listEdgesOut[i]:getInformation("reference") == nil then
             listEdgesOut[i]:setInformation("reference", formulaOutsideBracketEdge:getDestino())
-         elseif listEdgesOut[i]:getInformation("reference") == formulaNode then
+         end
+
+         if listEdgesOut[i]:getInformation("reference") == formulaNode then
             listEdgesOut[i]:setInformation("reference", nil)                      
          end
       end
