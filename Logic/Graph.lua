@@ -248,7 +248,7 @@ function Graph:removeNode(node)
    return isNodeDeleted
 end
 
-local function generateDotOfNode(node)
+local function generateDotOfAllNodes(node)
 
    local ret = ""
 
@@ -257,14 +257,42 @@ local function generateDotOfNode(node)
    end 
    
    for i,e in ipairs(node:getEdgesOut()) do
-      if e:getLabel() == lblEdgeDeducao and
-         e:getDestino():getInformation("isProved") ~= nil and
+      ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
+      ret = ret..generateDotOfAllNodes(e:getDestino())
+   end
+   
+   return ret
+
+end
+
+local function generateDotOfCounterExamplePathNodes(node)
+
+   local ret = ""
+   local ultimoSeq = false
+
+   if node:getInformation("isAxiom") then
+      ret = ret.."        \""..node:getLabel().."\" [fillcolor=blue, style=filled]\n"
+   end 
+   
+   -- to stop debug at a specific point
+   if tonumber(node:getLabel():sub(4)) == 28 then
+      local x = 28
+   end      
+
+   if node:getInformation("type"):sub(1.3) == "Seq" and node:getEdgeOut(lblEdgeDeducao) == nil then
+      ret = ret..generateDotOfAllNodes(node)
+   else      
+      for i,e in ipairs(node:getEdgesOut()) do
+         if e:getLabel() == lblEdgeDeducao and
+            e:getDestino():getInformation("isProved") ~= nil and
          not e:getDestino():getInformation("isProved") then
-         ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\",color=red,penwidth=3.0];\n"
-      else
-         ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
+            ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\",color=red,penwidth=3.0];\n"
+            ret = ret..generateDotOfCounterExamplePathNodes(e:getDestino())
+         elseif e:getLabel() == lblEdgeGoal then
+            ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
+            ret = ret..generateDotOfCounterExamplePathNodes(e:getDestino())
+         end      
       end
-      ret = ret..generateDotOfNode(e:getDestino())
    end
    
    return ret
@@ -284,7 +312,13 @@ function Graph:toString()
       else
          local e = self.root:getEdgesOut()[1]
          ret = ret.."        \""..e:getOrigem():getLabel().."\" [fillcolor=yellow, style=filled]\n"
-         ret = ret..generateDotOfNode(e:getOrigem())
+
+         if e:getDestino():getInformation("isProved") ~= nil and
+         not e:getDestino():getInformation("isProved") then
+            ret = ret..generateDotOfCounterExamplePathNodes(e:getOrigem())
+         else
+            ret = ret..generateDotOfAllNodes(e:getOrigem())
+         end         
       end
       
       ret = ret.."}"
