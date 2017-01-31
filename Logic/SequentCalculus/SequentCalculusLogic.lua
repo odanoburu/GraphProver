@@ -564,7 +564,6 @@ local function getInitialSequent()
 end
 
 local function verifyAxiom(sequentNode)
-   --local edgesLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
    local edgesFocus = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino():getEdgesOut()
    local rightFormulaNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
    local isAxiom = false

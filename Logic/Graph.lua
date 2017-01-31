@@ -269,6 +269,7 @@ local function generateDotOfCounterExamplePathNodes(node)
 
    local ret = ""
    local ultimoSeq = false
+   local alreadyPrintedFormulas = Set:new()
 
    if node:getInformation("isAxiom") then
       ret = ret.."        \""..node:getLabel().."\" [fillcolor=blue, style=filled]\n"
@@ -283,14 +284,30 @@ local function generateDotOfCounterExamplePathNodes(node)
       ret = ret..generateDotOfAllNodes(node)
    else      
       for i,e in ipairs(node:getEdgesOut()) do
-         if e:getLabel() == lblEdgeDeducao and
-            e:getDestino():getInformation("isProved") ~= nil and
-         not e:getDestino():getInformation("isProved") then
-            ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\",color=red,penwidth=3.0];\n"
-            ret = ret..generateDotOfCounterExamplePathNodes(e:getDestino())
+         if e:getLabel() == lblEdgeDeducao then
+            if e:getDestino():getInformation("isProved") ~= nil and not e:getDestino():getInformation("isProved") then
+               ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\",color=red,penwidth=3.0];\n"
+               ret = ret..generateDotOfCounterExamplePathNodes(e:getDestino())
+            end
+            
          elseif e:getLabel() == lblEdgeGoal then
             ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
             ret = ret..generateDotOfCounterExamplePathNodes(e:getDestino())
+            
+         elseif tonumber(e:getLabel()) ~= nil then
+            local formulaNode = e:getDestino()
+            local atomicReference = e:getInformation("reference")
+
+            local contextAsStr = HelperModule.getOriginalFormulaCopied(formulaNode):getLabel()
+            if atomicReference ~= nil then
+               contextAsStr = contextAsStr..atomicReference:getLabel()
+            end
+
+            if not alreadyPrintedFormulas:contains(contextAsStr) then
+               ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
+               ret = ret..generateDotOfCounterExamplePathNodes(e:getDestino())
+               alreadyPrintedFormulas:add(contextAsStr)
+            end
          end      
       end
    end
