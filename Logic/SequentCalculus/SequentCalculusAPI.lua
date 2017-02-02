@@ -259,6 +259,24 @@ function step(pstep)
    clear()
 end
 
+function print_formula(formula)
+   local formulaNode = findf(formula)
+   
+   graph = LogicModule.getGraph()
+   PrintModule.printProof(formulaNode, nil, ppFormula)
+   os.showProof()   
+   clear()   
+end
+
+function print_seq(seq)
+   local seqNode = finds(seq)
+   
+   graph = LogicModule.getGraph()
+   PrintModule.printProof(seqNode, nil, ppSeq)
+   os.showProof()   
+   clear()   
+end
+
 function print_all()
    graph = LogicModule.getGraph()
    PrintModule.printProof(graph)

@@ -88,7 +88,7 @@ local function printFormula(formulaNode, shortedFormula)
 
 end
 
-local function printSequent(sequentNode, file, printOnlyOpenBranch)
+local function printSequent(sequentNode, printOnlyOpenBranch)
    local ret = ""
    local edge, nodeEsq, nodeDir = nil
    local deductions = {}
@@ -124,7 +124,7 @@ local function printSequent(sequentNode, file, printOnlyOpenBranch)
       end
 
       if #deductions > 0 then
-         file:write("\\prftree[r]{$"..rule.."$}\n")
+         ret = ret.."\\prftree[r]{$"..rule.."$}\n"
       end      
 
       -- Premisses
@@ -138,16 +138,16 @@ local function printSequent(sequentNode, file, printOnlyOpenBranch)
             if printOnlyOpenBranch then
                -- Print dots in the branch that is not totally expanded or is closed.
                if nextSeqNode:getInformation("isProved") ==nil or sequentNode:getInformation("isProved") then
-                  file:write("{\\vdots}\n")               
+                  ret = ret.."{\\vdots}\n"
                else
-                  file:write("{\n")            
-                  printSequent(deductions[i], file, printOnlyOpenBranch)
-                  file:write("\n}\n")
+                  ret = ret.."{\n"
+                  ret = ret..printSequent(deductions[i], printOnlyOpenBranch)
+                  ret = ret.."\n}\n"
                end
             else
-               file:write("{\n")            
-               printSequent(deductions[i], file, printOnlyOpenBranch)
-               file:write("\n}\n")               
+               ret = ret.."{\n"
+               ret = ret..printSequent(deductions[i], printOnlyOpenBranch)
+               ret = ret.."\n}\n"
             end            
          end         
       end
@@ -155,11 +155,11 @@ local function printSequent(sequentNode, file, printOnlyOpenBranch)
       -- Conclusion
 
       if sequentNode:getInformation("isAxiom") then
-         file:write("{\\color{blue}{")
+         ret = ret.."{\\color{blue}{"
       elseif sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
-         file:write("{\\color{red}{")
+         ret = ret.."{\\color{red}{"
       else            
-         file:write("{")
+         ret = ret.."{"
       end      
 
       -- Left side
@@ -201,15 +201,15 @@ local function printSequent(sequentNode, file, printOnlyOpenBranch)
       end       
       ret = ret:sub(1, ret:len()-1)     
 
-      file:write(ret)
       if sequentNode:getInformation("isAxiom") or
          ( sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved")) then
-         file:write("}}")
+         ret = ret.."}}"
       else            
-         file:write("}")
+         ret = ret.."}"
       end
-
    end
+
+   return ret
 end
 
 -- Public functions
@@ -226,71 +226,97 @@ function PrintModule.printGraph(agraph)
    file:close()
 end
 
-function PrintModule.printProof(agraph, nameSufix)
+function PrintModule.printProof(object, nameSufix, ppType)
 
-   if nameSufix == nil then nameSufix = "" end
+   if ppType == nil then ppType = ppProof end   
+   if nameSufix == nil then nameSufix = "1" end
    
    local texOutput = defaultOutput
    
    local file = io.open("aux/prooftree"..nameSufix..".tex", "w")
-   local goalEdge = agraph:getNode(lblNodeGG):getEdgesOut()
    local ret = false
+   local content = ""
 
-   if (goalEdge ~= nil) and (#goalEdge > 0) then
-      
-      local seq = goalEdge[1]:getDestino()
+   file:write("\\documentclass[landscape]{article}\n\n")
 
-      file:write("\\documentclass[landscape]{article}\n\n")
-
-      file:write("\\usepackage{etex}\n")      
-      file:write("\\usepackage{amsbsy}\n")
-      file:write("\\usepackage{color}\n")
-      file:write("\\usepackage[ND,SEQ]{prftree}\n")
-      
-      if texOutput == texOutputPDF then
-         file:write("\\usepackage{incgraph}\n\n")
-      end 
-      file:write("\\begin{document}\n")
-      if texOutput == texOutputPDF then
-         file:write("\\begin{inctext}\n")
-      end
-
-      if seq:getEdgeOut(lblEdgeDeducao) ~= nil then
-         file:write("$$\n")
-      else
-         file:write("$")
-      end
-
-      -- If Seq0 is false, print only the open branch
-      if seq:getInformation("isProved") ~= nil and not seq:getInformation("isProved") then
-         printOnlyOpenBranch = true
-      else
-         printOnlyOpenBranch = false         
-      end
-      
-      printSequent(seq, file, printOnlyOpenBranch)
-      
-      --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
-      --serializedSequent = serializedSequent:gsub("\\to", "→")
-      --logger:info("statistics -- Serialized sequent: "..serializedSequent)  
-      --logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
-      --countGraphElements()
-
-      if seq:getEdgeOut(lblEdgeDeducao) ~= nil then
-         file:write("\n$$\n")
-      else
-         file:write("$\n")
-      end
-
-      if texOutput == texOutputPDF then
-         file:write("\\end{inctext}\n")
-      end
-      file:write("\\end{document}\n")
-      file:close()
-
-      ret = true
-      os.showProof(nameSufix)
+   file:write("\\usepackage{etex}\n")      
+   file:write("\\usepackage{amsbsy}\n")
+   file:write("\\usepackage{color}\n")
+   file:write("\\usepackage[ND,SEQ]{prftree}\n")
+   
+   if texOutput == texOutputPDF then
+      file:write("\\usepackage{incgraph}\n\n")
+   end 
+   file:write("\\begin{document}\n")
+   if texOutput == texOutputPDF then
+      file:write("\\begin{inctext}\n")
    end
-  
+
+   if ppType == ppProof then
+      local goalEdge = object:getNode(lblNodeGG):getEdgesOut()
+
+      
+      if (goalEdge ~= nil) and (#goalEdge > 0) then
+         
+         local seq = goalEdge[1]:getDestino()
+
+         if seq:getEdgeOut(lblEdgeDeducao) ~= nil then
+            content = content.."$$\n"
+         else
+            content = content.."$"
+         end
+
+         -- If Seq0 is false, print only the open branch
+         if seq:getInformation("isProved") ~= nil and not seq:getInformation("isProved") then
+            printOnlyOpenBranch = true
+         else
+            printOnlyOpenBranch = false         
+         end
+         
+         content = printSequent(seq, printOnlyOpenBranch)
+         
+         --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
+         --serializedSequent = serializedSequent:gsub("\\to", "→")
+         --logger:info("statistics -- Serialized sequent: "..serializedSequent)  
+         --logger:info("statistics -- Size of serialized sequent: "..serializedSequent:len())  
+         --countGraphElements()
+         
+         if seq:getEdgeOut(lblEdgeDeducao) ~= nil then
+            content = content.."\n$$\n"
+         else
+            content = content.."$\n"
+         end
+      end
+   elseif ppType == ppSeq then
+      if object:getEdgeOut(lblEdgeDeducao) ~= nil then
+         content = content.."$$\n"
+      else
+         content = content.."$\n"
+      end
+      
+      content = content..printSequent(object, printOnlyOpenBranch)
+
+      if object:getEdgeOut(lblEdgeDeducao) ~= nil then
+         content = content.."\n$$\n"
+      else
+         content = content.."$\n"
+      end      
+
+   elseif ppType == ppFormula then
+      content = "$"..printFormula(object, false).."$"      
+   end
+
+   file:write(content)
+   
+   if texOutput == texOutputPDF then
+      file:write("\\end{inctext}\n")
+   end
+   file:write("\\end{document}\n")
+   file:close()
+
+   ret = true
+   os.showProof(nameSufix)
+
+   
    return ret
 end

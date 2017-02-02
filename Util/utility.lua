@@ -41,7 +41,7 @@ end
 
 function os.showProof(nameSufix)
 
-   if nameSufix == nil then nameSufix = "" end
+   if nameSufix == nil then nameSufix = "1" end
 
    if defaultOutput == texOutputPDF then
       os.execute("pdflatex -output-directory=aux aux/prooftree"..nameSufix..".tex")

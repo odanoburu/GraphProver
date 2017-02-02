@@ -67,6 +67,11 @@ lblRuleRestart = "restart"
 leftSide = "Left"
 rightSide = "Right"
 
+-- Pretty Print
+ppProof = "proof"
+ppSeq = "seq"
+ppFormula = "formula"
+
 -- Tex Print Options
 texOutputHtml = "html"
 texOutputPDF = "pdf"
