@@ -11,6 +11,8 @@ Graph = {}
 
 Graph_Metatable = { __index = Graph }
 
+local contextMap = {}
+
 --- Graph constructor
 function Graph:new ()
    return setmetatable( {}, Graph_Metatable )
@@ -258,27 +260,41 @@ local function generateDotOfAllNodes(node)
    end 
    
    for i,e in ipairs(node:getEdgesOut()) do
-      if tonumber(e:getLabel()) ~= nil then
-         local formulaNode = e:getDestino()
-         local atomicReference = e:getInformation("reference")
-         local atomicReferenceStr = ""
+      local nodeDestino = e:getDestino()
+      local atomicReference = e:getInformation("reference")
+      local atomicReferenceStr = ""
 
-         local contextAsStr = HelperModule.getOriginalFormulaCopied(formulaNode):getLabel()
-         
-         if atomicReference ~= nil then
-            contextAsStr = contextAsStr..atomicReference:getLabel()
-            atomicReferenceStr = atomicReference:getLabel()
+      local contextAsStr = HelperModule.getOriginalFormulaCopied(nodeDestino):getLabel()
+      
+      if atomicReference ~= nil then
+         contextAsStr = "("..contextAsStr..") ^"..atomicReference:getLabel()
+         atomicReferenceStr = atomicReference:getLabel()
+      else
+         contextAsStr = "("..contextAsStr..")"
+      end
+
+      if not alreadyPrintedFormulas:contains(contextAsStr) then
+
+         if contextMap[e:getDestino()] == nil then
+            if "("..nodeDestino:getLabel()..")" == contextAsStr then
+               contextMap[e:getDestino()] = e:getDestino():getLabel()
+            else                  
+               contextMap[e:getDestino()] = e:getDestino():getLabel().." "..contextAsStr
+            end
          end
 
-         if not alreadyPrintedFormulas:contains(contextAsStr) then
-            ret = ret.."        \""..e:getOrigem():getLabel().." ("..contextAsStr..")".."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().." --> "..atomicReferenceStr.."\"];\n"
-            ret = ret..generateDotOfAllNodes(e:getDestino())
+         if contextMap[e:getOrigem()] == nil then
+            contextMap[e:getOrigem()] = e:getOrigem():getLabel()
+         end            
+
+         if atomicReferenceStr ~= "" then
+            atomicReferenceStr = " ^ "..atomicReferenceStr
+         end
+         
+         ret = ret.."        \""..contextMap[e:getOrigem()].."\" -- \""..contextMap[e:getDestino()].."\" [label=\""..e:getLabel()..atomicReferenceStr.."\"];\n"
+         ret = ret..generateDotOfAllNodes(e:getDestino())
             alreadyPrintedFormulas:add(contextAsStr)
          end
-      else
-         ret = ret.."        \""..e:getOrigem():getLabel().."\" -- \""..e:getDestino():getLabel().."\" [label=\""..e:getLabel().."\"];\n"
-         ret = ret..generateDotOfAllNodes(e:getDestino())
-      end      
    end
    
    return ret
@@ -323,6 +339,8 @@ function Graph:toString()
 
    local ret = ""
 
+   contextMap = {}
+
    if self.root ~= nil then
 
       ret = "graph {\n"   
@@ -343,7 +361,9 @@ function Graph:toString()
       
       ret = ret.."}"
 
-   end   
+   end
+
+   contextMap = {}
 
    return ret
    
