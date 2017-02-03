@@ -142,9 +142,8 @@ function findf(form)
       for i=1,#leftSide:getEdgesOut() do
          local itemNode = leftSide:getEdgesOut()[i]:getDestino()
          if itemNode:getInformation("type") == lblNodeFocus then
-            local itemNodeEdges = itemNode:getEdgesOut()
-            for j=1,#itemNodeEdges do
-               found, formulaNode = findf_sub(itemNodeEdges:getDestino(), form)
+            for j,itemNodeEdge in ipairs(itemNode:getEdgesOut()) do
+               found, formulaNode = findf_sub(itemNodeEdge:getDestino(), form)
                if found then
                   break
                end
@@ -161,9 +160,8 @@ function findf(form)
          for i=1,#rightSide:getEdgesOut() do
             local itemNode = rightSide:getEdgesOut()[i]:getDestino()
             if itemNode:getInformation("type") == lblNodeBrackets then
-               local itemNodeEdges = itemNode:getEdgesOut()
-               for j=1,#itemNodeEdges do
-                  found, formulaNode = findf_sub(itemNodeEdges:getDestino(), form)
+               for j,itemNodeEdge in ipairs(itemNode:getEdgesOut()) do
+                  found, formulaNode = findf_sub(itemNodeEdge:getDestino(), form)
                   if found then
                      break
                   end
