@@ -273,7 +273,7 @@ function PrintModule.printProof(object, nameSufix, ppType)
             printOnlyOpenBranch = false         
          end
          
-         content = printSequent(seq, printOnlyOpenBranch)
+         content = content..printSequent(seq, printOnlyOpenBranch)
          
          --serializedSequent = serializedSequent:gsub("\\vdash", "⊨")
          --serializedSequent = serializedSequent:gsub("\\to", "→")
@@ -291,7 +291,7 @@ function PrintModule.printProof(object, nameSufix, ppType)
       if object:getEdgeOut(lblEdgeDeducao) ~= nil then
          content = content.."$$\n"
       else
-         content = content.."$\n"
+         content = content.."$"
       end
       
       content = content..printSequent(object, printOnlyOpenBranch)
@@ -303,7 +303,7 @@ function PrintModule.printProof(object, nameSufix, ppType)
       end      
 
    elseif ppType == ppFormula then
-      content = "$"..printFormula(object, false).."$"      
+      content = "$"..printFormula(object, false).."$\n"      
    end
 
    file:write(content)
