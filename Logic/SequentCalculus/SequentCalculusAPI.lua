@@ -174,12 +174,16 @@ function findf(form)
             end            
          end
       end
-      
-      if seqNode:getEdgeOut(lblEdgeDeducao) ~= nil then
-         seqNode = seqNode:getEdgeOut(lblEdgeDeducao):getDestino()
+
+      if not found then
+         if seqNode:getEdgeOut(lblEdgeDeducao) ~= nil then
+            seqNode = seqNode:getEdgeOut(lblEdgeDeducao):getDestino()
+         else
+            seqNode = nil
+         end
       else
          seqNode = nil
-      end
+      end               
    end
    
    return formulaNode
