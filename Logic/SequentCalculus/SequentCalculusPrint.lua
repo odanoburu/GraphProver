@@ -19,7 +19,7 @@ local serializedSequent = ""
 
 local function printFormula(formulaNode, shortedFormula)
    local ret = ""
-   local edge, subformula = nil
+   local edge
    
    if shortedFormula == nil then shortedFormula = true end
       
@@ -303,7 +303,7 @@ function PrintModule.printProof(object, nameSufix, ppType)
       end      
 
    elseif ppType == ppFormula then
-      content = "$"..printFormula(object, false).."$\n"      
+      content = "$"..printFormula(object, printShortedFormulas).."$\n"      
    end
 
    file:write(content)

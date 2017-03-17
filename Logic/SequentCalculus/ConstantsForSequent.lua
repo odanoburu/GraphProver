@@ -76,5 +76,5 @@ ppFormula = "formula"
 texOutputHtml = "html"
 texOutputPDF = "pdf"
 defaultOutput = texOutputPDF
-printShortedFormulas = true
+printShortedFormulas = false
 
