@@ -59,7 +59,7 @@ local function printFormula(formulaNode, shortedFormula)
             end
          end
 
-         if originalFormula ~= nil then
+         if originalFormula ~= nil and printCopiedId then
             ret = ret..opImp.tex.."_{"..formulaNumber.."}^{"..formulaNumberCopied.."}"
          else
             ret = ret..opImp.tex.."_{"..formulaNumber.."}"
