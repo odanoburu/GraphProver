@@ -78,3 +78,7 @@ texOutputPDF = "pdf"
 defaultOutput = texOutputPDF
 printShortedFormulas = true
 printCopiedId = false
+--counterExampleColor = "red"
+--axiomColor = "blue"
+counterExampleColor = "black"
+axiomColor = "black"

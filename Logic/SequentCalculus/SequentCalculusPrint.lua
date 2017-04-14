@@ -34,21 +34,21 @@ local function printFormula(formulaNode, shortedFormula)
 
    if (formulaNode:getEdgesOut() ~= nil) and (#formulaNode:getEdgesOut() ~= 0) then
       if formulaNode:getInformation("type") == lblNodeFocus then
-         ret = ret.."{\\color{red}\\{}"
+         ret = ret.."{\\color{"..counterExampleColor.."}\\{}"
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
             ret = ret..printFormula(subformula, shortedFormula)..","
          end
          ret = ret:sub(1, ret:len()-1)
-         ret = ret.."{\\color{red}\\}}"
+         ret = ret.."{\\color{"..counterExampleColor.."}\\}}"
       elseif formulaNode:getInformation("type") == lblNodeBrackets then
-         ret = ret.."{\\color{red}[}"
+         ret = ret.."{\\color{"..counterExampleColor.."}[}"
          for i, edge in ipairs(formulaNode:getEdgesOut()) do
             subformula = edge:getDestino()
             ret = ret..printFormula(subformula, shortedFormula)..","
          end
          ret = ret:sub(1, ret:len()-1)
-         ret = ret.."{\\color{red}]}"
+         ret = ret.."{\\color{"..counterExampleColor.."}]}"
       else
          if not shortedFormula then
             for i, edge in ipairs(formulaNode:getEdgesOut()) do
@@ -77,10 +77,10 @@ local function printFormula(formulaNode, shortedFormula)
    else
       ret = formulaNode:getLabel()
       if formulaNode:getInformation("type") == lblNodeBrackets then
-         ret = "{\\color{red}[]}"
+         ret = "{\\color{"..counterExampleColor.."}[]}"
       end
       if formulaNode:getInformation("type") == lblNodeFocus then
-         ret = "{\\color{red}\\{\\}}"
+         ret = "{\\color{"..counterExampleColor.."}\\{\\}}"
       end      
    end
 
@@ -124,40 +124,15 @@ local function printSequent(sequentNode, printOnlyOpenBranch)
       end
 
       if #deductions > 0 then
-         ret = ret.."\\prftree[r]{$"..rule.."$}\n"
+         ret = ret.."\\infer["..rule.."]\n"
       end      
-
-      -- Premisses
-
-      --serializedSequent = serializedSequent..ret.." "  
-      if #deductions > 0 then
-         --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
-         --serializedSequent = serializedSequent.."|"
-         
-         for i, nextSeqNode in ipairs(deductions) do           
-            if printOnlyOpenBranch then
-               -- Print dots in the branch that is not totally expanded or is closed.
-               if nextSeqNode:getInformation("isProved") ==nil or sequentNode:getInformation("isProved") then
-                  ret = ret.."{\\vdots}\n"
-               else
-                  ret = ret.."{\n"
-                  ret = ret..printSequent(deductions[i], printOnlyOpenBranch)
-                  ret = ret.."\n}\n"
-               end
-            else
-               ret = ret.."{\n"
-               ret = ret..printSequent(deductions[i], printOnlyOpenBranch)
-               ret = ret.."\n}\n"
-            end            
-         end         
-      end
 
       -- Conclusion
 
       if sequentNode:getInformation("isAxiom") then
-         ret = ret.."{\\color{blue}{"
+         ret = ret.."{\\color{"..axiomColor.."}{"
       elseif sequentNode:getInformation("isProved") ~= nil and not sequentNode:getInformation("isProved") then
-         ret = ret.."{\\color{red}{"
+         ret = ret.."{\\color{"..counterExampleColor.."}{"
       else            
          ret = ret.."{"
       end      
@@ -190,7 +165,7 @@ local function printSequent(sequentNode, printOnlyOpenBranch)
       end
 
       -- Sequent Symbol
-      ret = ret.." {\\color{blue}"..opSeq.tex.."_{"..seqNumber.."}} "
+      ret = ret.." {\\color{"..axiomColor.."}"..opSeq.tex.."_{"..seqNumber.."}} "
 
 
       -- Right Side
@@ -207,6 +182,33 @@ local function printSequent(sequentNode, printOnlyOpenBranch)
       else            
          ret = ret.."}"
       end
+
+      --serializedSequent = serializedSequent..ret.." "  
+      if #deductions > 0 then
+         --serializedSequent = serializedSequent:sub(1, serializedSequent:len()-1)
+         --serializedSequent = serializedSequent.."|"
+
+         ret = ret.."{\n"
+         
+         for i, nextSeqNode in ipairs(deductions) do
+            if printOnlyOpenBranch then
+               -- Print dots in the branch that is not totally expanded or is closed.
+               if sequentNode:getInformation("isProved") or nextSeqNode:getInformation("isProved") ==nil then
+                  ret = ret.."\\vdots"
+               else
+                  ret = ret..printSequent(deductions[i], printOnlyOpenBranch)
+               end
+            else
+               ret = ret..printSequent(deductions[i], printOnlyOpenBranch)
+            end
+            
+            if #deductions > 1 and i < #deductions then
+               ret = ret.." & "
+            end   
+         end
+         ret = ret.."}\n"         
+      end
+      
    end
 
    return ret
@@ -242,7 +244,7 @@ function PrintModule.printProof(object, nameSufix, ppType)
    file:write("\\usepackage{etex}\n")      
    file:write("\\usepackage{amsbsy}\n")
    file:write("\\usepackage{color}\n")
-   file:write("\\usepackage[ND,SEQ]{prftree}\n")
+   file:write("\\usepackage{proof}\n")
    
    if texOutput == texOutputPDF then
       file:write("\\usepackage{incgraph}\n\n")
