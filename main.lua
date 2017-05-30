@@ -279,7 +279,7 @@ local function drawGraphEvent(graph)
       end
    end
 
-   applyForces(graph)
+   -- applyForces(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
@@ -593,7 +593,7 @@ local function dragNodeOrScreenOrSelectFocusEvent()
       -- Usuario arrastando um vertice  
    elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
       nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
-      applyForces(proofGraph)
+      -- applyForces(proofGraph)
       
     -- Usuario arrastando toda a tela 
    elseif nodeMoving == nil then        

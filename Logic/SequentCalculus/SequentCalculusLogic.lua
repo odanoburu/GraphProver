@@ -1065,8 +1065,8 @@ function LogicModule.expandAll(agraph, pstep)
    if isAllExpanded or nstep == 0 then
       nstep = 0
       sufix = sufix + 1
-      PrintModule.printGraph(graph)
-      PrintModule.printProof(graph, tostring(sufix))
+--      PrintModule.printGraph(graph)
+--      PrintModule.printProof(graph, tostring(sufix))
       logGoalsList()
       if isAllExpanded then
          logger:info("expandAll - All sequents expanded!")
