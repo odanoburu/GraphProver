@@ -978,8 +978,8 @@ function LogicModule.expandNode(agraph, sequentNode, formulaNode)
    return true, graph      
 end
 
-function LogicModule.expandAll(agraph, pstep)
-
+function LogicModule.expandAll(agraph, seqLimit, pstep)
+  
    local isAllExpanded = true
    local k, goalEntry, focusedFormula
 
@@ -1031,7 +1031,14 @@ function LogicModule.expandAll(agraph, pstep)
             -- to stop debug at a specific point
             if tonumber(k:sub(4)) == 10 then
                local x = 7
-            end          
+            end
+
+            if seqLimit ~= nil then
+               if seqLimit == seq:getLabel():lower() then
+                  logger:info("expandAll - Limit Sequent rechead!"..seq:getLabel())
+                  return graph, ret
+               end
+            end
 
             if not verifyAxiom(seq) then
                local ret, rule, formulaNode = isExpandable(seq)
@@ -1073,7 +1080,7 @@ function LogicModule.expandAll(agraph, pstep)
       end
       ret = true      
    else
-      graph = LogicModule.expandAll(graph, pstep)
+      graph = LogicModule.expandAll(graph, seqLimit, pstep)
       ret = false
    end
 

@@ -255,9 +255,15 @@ function run()
    clear()
 end
 
+function run_until(seq)
+   graph = LogicModule.getGraph()
+   LogicModule.expandAll(graph, seq)
+   clear()
+end
+
 function step(pstep)
    graph = LogicModule.getGraph()
-   LogicModule.expandAll(graph, pstep)
+   LogicModule.expandAll(graph, nil, pstep)
    clear()
 end
 
