@@ -1,5 +1,7 @@
 Formula{"dummet-translated", "((p imp (q)) imp (o)) imp (((q imp (p)) imp (o)) imp ((((p imp (q)) imp (p)) imp (((q imp (p)) imp (p)) imp (o imp (p)))) imp ((((p imp (q)) imp (q)) imp (((q imp (p)) imp (q)) imp (o imp (q)))) imp (o))))"}
 
+Formula{"dummet-translated-simp", "(((p imp (q)) imp (p)) imp (((q imp (p)) imp (p)) imp (o imp (p)))) imp ((((p imp (q)) imp (q)) imp (((q imp (p)) imp (q)) imp (o imp (q)))) imp (o))"}
+
 -- Valid formulas:
 Formula{"translation", "(A imp (B imp (C))) imp (B imp (A imp (C)))"}
 Formula{"valid1", "(B imp ((C imp (A)))) imp ((A imp (B)) imp ((A imp (C)) imp ((A imp (C)))))"}
