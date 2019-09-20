@@ -29,17 +29,17 @@ local function generateNewGoal(sequentNode)
    if goalsList == nil then
       goalsList = {}
    end
-   
-   local newGoal = nil  
+
+   local newGoal = nil
 
    local esqNode = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
    local dirNode = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
 
    local j = 1
-   
+
    local leftGoals = {}
    local esqEdges = esqNode:getEdgesOut()
-   
+
    if esqEdges ~= nil then
       for i=1, #esqEdges do
          local nodeEsq = esqEdges[i]:getDestino()
@@ -50,11 +50,11 @@ local function generateNewGoal(sequentNode)
             j = j + 1
          end
       end
-   end  
+   end
    j = 1
    local rightGoals = {}
    local dirEdges = dirNode:getEdgesOut()
-   if dirEdges ~= nil then 
+   if dirEdges ~= nil then
       for i=1, #dirEdges do
          local nodeDir = dirEdges[i]:getDestino()
          local typeOfNode = nodeDir:getInformation("type")
@@ -66,7 +66,7 @@ local function generateNewGoal(sequentNode)
       end
    end
    newGoal = Goal:new (sequentNode, leftGoals, rightGoals)
-                
+
    return newGoal
 end
 
@@ -74,11 +74,11 @@ local function createGraphEmpty()
 
    local SequentGraph = Graph:new ()
    SequentNode:resetCounters()
-   
+
    local NodeGG = SequentNode:new(lblNodeGG)
    local nodes = {NodeGG}
    local edges = {}
-   
+
    SequentGraph:addNodes(nodes)
    SequentGraph:addEdges(edges)
    SequentGraph:setRoot(NodeGG)
@@ -86,36 +86,36 @@ local function createGraphEmpty()
 end
 
 ---
---- @param letters Stores all atoms.  
+--- @param letters Stores all atoms.
 local function createGraphFormula(formula_tabela,letters)
 
    local S2
    local S1
    local nodes
    local edges
-   local NodeLetter=nil   
+   local NodeLetter=nil
    local FormulaGraph = Graph:new ()
-   --SequentNode:resetCounters()   
+   --SequentNode:resetCounters()
 
-   if formula_tabela.tag == "Atom" then 
+   if formula_tabela.tag == "Atom" then
       local prop_letter = formula_tabela["1"]
-      for k,v in pairs(letters) do 
-         if k == prop_letter then 
+      for k,v in pairs(letters) do
+         if k == prop_letter then
             NodeLetter = v
          end
       end
-      if not NodeLetter then   
+      if not NodeLetter then
          NodeLetter = SequentNode:new(prop_letter)
          letters[prop_letter]=NodeLetter
       end
-         
+
       nodes={NodeLetter}
       edges={}
-      
+
       FormulaGraph:addNodes(nodes)
       FormulaGraph:addEdges(edges)
       FormulaGraph:setRoot(NodeLetter)
-      
+
    elseif formula_tabela.tag == "imp" then
 
       S1,letters= createGraphFormula(formula_tabela["1"],letters)
@@ -127,18 +127,18 @@ local function createGraphFormula(formula_tabela,letters)
 
       nodes = {NodeImp}
       edges = {EdgeEsq,EdgeDir}
-      
+
       FormulaGraph:addNodes(S1.nodes)
       FormulaGraph:addNodes(S2.nodes)
       FormulaGraph:addNodes(nodes)
       FormulaGraph:addEdges(S1.edges)
       FormulaGraph:addEdges(S2.edges)
       FormulaGraph:addEdges(edges)
-      FormulaGraph:setRoot(NodeImp)           
+      FormulaGraph:setRoot(NodeImp)
    end
 
    return FormulaGraph,letters
-end   
+end
 
 local function createGraphSequent(seq_tabela, letters)
 
@@ -162,7 +162,7 @@ local function createGraphSequent(seq_tabela, letters)
    local nodes = {NodeGG, NodeSeq, NodeDir, NodeEsq, NodeBrackets, NodeFocus}
    SequentGraph:addNodes(nodes)
    SequentGraph:addNodes(S.nodes)
-   local edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6}    
+   local edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6}
    SequentGraph:addEdges(edges)
    SequentGraph:addEdges(S.edges)
 
@@ -175,12 +175,12 @@ local function createGraphSequent(seq_tabela, letters)
 
    local leftExpandedFormulas = {}
    NodeSeq:setInformation("leftExpandedFormulas", leftExpandedFormulas)
-   
+
    local restartedFormulas = Set:new()
    NodeSeq:setInformation("restartedFormulas", restartedFormulas)
 
    SequentGraph:setRoot(NodeGG)
-      
+
    return SequentGraph
 end
 
@@ -220,18 +220,18 @@ local function verifySideOfOperator(sequentNode, formulaNode)
          if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), formulaNode) then
             return "Right"
          end
-      end               
+      end
    end
-   
-   return nil 
+
+   return nil
 end
 
-local function markProvedPath(sequentNode) 
+local function markProvedPath(sequentNode)
    local seq = sequentNode
 
    while seq ~= nil do
       seq:setInformation("isProved", true)
-      if seq:getEdgeIn(lblEdgeDeducao) then 
+      if seq:getEdgeIn(lblEdgeDeducao) then
         seq = seq:getEdgeIn(lblEdgeDeducao):getOrigem()
       else
         seq = nil
@@ -239,12 +239,12 @@ local function markProvedPath(sequentNode)
    end
 end
 
-local function markCounterExamplePath(sequentNode) 
+local function markCounterExamplePath(sequentNode)
    local seq = sequentNode
 
    while seq ~= nil do
       seq:setInformation("isProved", false)
-      if seq:getEdgeIn(lblEdgeDeducao) then 
+      if seq:getEdgeIn(lblEdgeDeducao) then
         seq = seq:getEdgeIn(lblEdgeDeducao):getOrigem()
       else
         seq = nil
@@ -253,21 +253,21 @@ local function markCounterExamplePath(sequentNode)
 end
 
 local function logGoalsList()
-   logger:info("GoalsList:")   
+   logger:info("GoalsList:")
    for k,v in pairs(goalsList) do
       if not goalsList[k].goal:getSequent():getInformation("isExpanded") then
          logger:info("seq: "..k.."; weight: "..goalsList[k].weight)
-      end      
+      end
    end
 end
 
 local function resetGoalsWeight(pweight)
 
    local k, goalEntry
-   
+
    for k,goalEntry in pairs(goalsList) do
       goalEntry.weight = pweight
-   end   
+   end
 end
 
 local function degreeOfFormula(formulaNode)
@@ -275,17 +275,17 @@ local function degreeOfFormula(formulaNode)
       return 0
    else
       local degree = 1 + degreeOfFormula(formulaNode:getEdgeOut(lblEdgeDir):getDestino()) + degreeOfFormula(formulaNode:getEdgeOut(lblEdgeEsq):getDestino())
-      return degree 
+      return degree
    end
 end
 
 local function compareGoalsListWeight(goalEntryA, goalEntryB)
-  
+
   return goalEntryB.weight > goalEntryA.weightA
 end
 
 local function compareFormulasDegree(formulaA, formulaB)
-  
+
    local countFormulaA, countFormulaB
 
    countFormulaA = degreeOfFormula(formulaA)
@@ -300,27 +300,27 @@ local function compareEdgesInBracket(edgeA, edgeB)
    local posB = tonumber(edgeB:getLabel())
 
    return posA > posB
-   
+
 end
 
 local function compareSequentsFormulas(sideSeq, sideSeqParent)
-  
+
    local edgeSeqParent
    local formulaSeq
    local formulasSeqParent = {}
    local ret = true
-   local i = 0   
+   local i = 0
 
    if sideSeqParent:getEdgesOut() == nil then
       formulasSeqParent = {}
-   else      
+   else
       for _, edgeSeqParent in ipairs(sideSeqParent:getEdgesOut()) do
          if edgeSeqParent:getDestino():getInformation("type") ~= lblNodeFocus and
             edgeSeqParent:getDestino():getInformation("type") ~= lblNodeBrackets then
 
                local formulaNode = nil
                local ref = ""
-               
+
                if edgeSeqParent:getDestino():getInformation("originalFormula") ~= nil then
                   formulaNode = edgeSeqParent:getDestino():getInformation("originalFormula")
                   local leftNodeParent = sideSeqParent:getEdgeIn("0"):getDestino()
@@ -333,31 +333,31 @@ local function compareSequentsFormulas(sideSeq, sideSeqParent)
                   formulaNode = edgeSeqParent:getDestino()
                   if edgeSeqParent:getInformation("reference") ~= nil then
                      ref = edgeSeqParent:getInformation("reference"):getLabel()
-                  end                  
-               end               
-               
-               i = i + 1         
+                  end
+               end
+
+               i = i + 1
                formulasSeqParent[i] = formulaNode:getLabel()..ref
-         end         
+         end
       end
    end
-   
+
    if sideSeq:getEdgesOut() == nil then
       if formulasSeqParent == nil then
          ret = true
       else
          ret = false
-      end      
+      end
    else
       local setOfFormulas = Set:new(formulasSeqParent)
-      
+
       for _, edgeSeq in ipairs(sideSeq:getEdgesOut()) do
          if edgeSeq:getDestino():getInformation("type") ~= lblNodeFocus and
             edgeSeq:getDestino():getInformation("type") ~= lblNodeBrackets then
 
                local formulaNode = nil
                local ref = ""
-               
+
                if edgeSeq:getDestino():getInformation("originalFormula") ~= nil then
                   formulaNode = edgeSeq:getDestino():getInformation("originalFormula")
                   local leftNode = sideSeq:getEdgeIn("0"):getDestino()
@@ -370,18 +370,18 @@ local function compareSequentsFormulas(sideSeq, sideSeqParent)
                   formulaNode = edgeSeq:getDestino()
                   if edgeSeq:getInformation("reference") ~= nil then
                      ref = edgeSeq:getInformation("reference"):getLabel()
-                  end                  
-               end                
-            
+                  end
+               end
+
                formulaSeq = formulaNode:getLabel()..ref
                if not setOfFormulas:contains(formulaSeq) then
                   ret = false
                   break
                end
-         end         
+         end
       end
    end
-   
+
    return ret
 end
 
@@ -397,7 +397,7 @@ local function isExpandable(sequentNode)
       ret = true
       rule = lblRuleImplyRight
       logger:info("isExpandable - "..sequentNode:getLabel().." ainda tem implicação `a direita.")
-   end   
+   end
 
    if not ret then
       local leftFormulasEdges = sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgesOut()
@@ -406,7 +406,7 @@ local function isExpandable(sequentNode)
       for i=1, #leftFormulasEdges do
          formulaNode = leftFormulasEdges[i]:getDestino()
          local typeOfNode = formulaNode:getInformation("type")
-         
+
          if leftFormulasEdges[i]:getLabel() ~= "0" then
             if (leftFormulasEdges[i]:getInformation("reference") == nil or leftFormulasEdges[i]:getInformation("reference") == rightFormulaNode) and
             not focusedFormulas[HelperModule.getOriginalFormulaCopied(formulaNode)] then
@@ -418,7 +418,7 @@ local function isExpandable(sequentNode)
          end
       end
    end
-   
+
    if not ret then
       local focusedFormulas = sequentNode:getInformation("focusedFormulas")
       local leftExpandedFormulas = sequentNode:getInformation("leftExpandedFormulas")
@@ -442,20 +442,20 @@ local function isExpandable(sequentNode)
       local edgesInOriginal = nil
       local referenceFormula = nil
       local hasReference = false
-      
+
       for _,edgesInFocus in ipairs(sequentNode:getEdgeOut(lblEdgeEsq):getDestino():getEdgeOut("0"):getDestino():getEdgesOut()) do
          formulaNode = edgesInFocus:getDestino()
-                  
-         if leftExpandedFormulas[contextFormula] == nil or 
-            not leftExpandedFormulas[contextFormula][HelperModule.getOriginalFormulaCopied(formulaNode)] and 
+
+         if leftExpandedFormulas[contextFormula] == nil or
+            not leftExpandedFormulas[contextFormula][HelperModule.getOriginalFormulaCopied(formulaNode)] and
             formulaNode:getInformation("type") == opImp.graph then
-            
+
             ret = true
             rule = lblRuleImplyLeft
             logger:info("isExpandable - "..sequentNode:getLabel().." ainda tem fórmulas focada não expandida com imply-left.")
             break
          end
-      end      
+      end
    end
 
    if not ret then
@@ -469,7 +469,7 @@ local function isExpandable(sequentNode)
          logger:info("Restarted Formulas - "..sequentNode:getLabel())
          for k,v in pairs(restartedFormulas) do
             logger:info(k:getLabel())
-         end         
+         end
 
          local i = #edgesFormulasInsideBracket
          while i >= 1 do
@@ -487,9 +487,9 @@ local function isExpandable(sequentNode)
             i = i - 1
          end
       end
-      
+
    end
-   
+
    return ret, rule, formulaNode
 end
 
@@ -502,13 +502,13 @@ local function generateCounterModel(sequentNode, counterModel)
       -- Cria nós dos mundos
       local world0 = Node:new(lblNodeWorld.."0")
       world0:setInformation("type", lblNodeWorld)
-      
+
       local world1 = Node:new(lblNodeWorld.."1")
       world1:setInformation("type", lblNodeWorld)
 
       -- Criar aresta do sequente para o mundo 0
       local edgeCounter = Edge:new(lblEdgeCounterModel, sequentNode, world0)
-      
+
       -- Criar aresta do mundo 0 para o mundo 1
       local edgeAccess = Edge:new(lblEdgeAccessability, world0, world1)
 
@@ -517,7 +517,7 @@ local function generateCounterModel(sequentNode, counterModel)
       graph:addNode(world1)
       graph:addEdge(edgeCounter)
       graph:addEdge(edgeAccess)
-      
+
       local seqSideRight = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
       local seqSideLeft = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
       local formula = nil
@@ -537,26 +537,26 @@ local function generateCounterModel(sequentNode, counterModel)
       edgeSat = Edge:new(lblEdgeSatisfy, world1, formula)
       graph:addEdge(edgeSat)
 
-      -- Se estiver no bracket criar aresta NOT SAT ligando ao mundo 0      
-      local formulasInsideBracketEdges = seqSideRight:getEdgeOut("1"):getDestino():getEdgesOut()      
+      -- Se estiver no bracket criar aresta NOT SAT ligando ao mundo 0
+      local formulasInsideBracketEdges = seqSideRight:getEdgeOut("1"):getDestino():getEdgesOut()
       for i=1,#formulasInsideBracketEdges do
          formula = formulasInsideBracketEdges[i]:getDestino()
          edgeSat = Edge:new(lblEdgeUnsatisfy, world0, formula)
          graph:addEdge(edgeSat)
       end
-      
-      ret = world0      
-      
+
+      ret = world0
+
    end
-   
+
    return ret3
 
 end
 
 local function getInitialSequent()
-   if graph then  
+   if graph then
       local goalEdge = graph:getNode(lblNodeGG):getEdgeOut(lblEdgeGoal)
-      
+
       if goalEdge then
         return goalEdge:getDestino()
       end
@@ -576,14 +576,14 @@ local function verifyAxiom(sequentNode)
             break
          end
       end
-   end 
-   
+   end
+
    if isAxiom then
       sequentNode:setInformation("isAxiom", true)
       sequentNode:setInformation("isExpanded", true)
-      markProvedPath(sequentNode)     
-      return true 
-   else   
+      markProvedPath(sequentNode)
+      return true
+   else
       return false
    end
 end
@@ -602,11 +602,11 @@ local function createBracketOrFocus(typeToCreate, sequentNode)
       edgeLabel = "0"
    end
 
-   local numberOfFormulasInside = 0  
+   local numberOfFormulasInside = 0
    if sideNode:getEdgeOut(edgeLabel) ~= nil then
       local oldNode = sideNode:getEdgeOut(edgeLabel):getDestino()
       local copiedEdgeInsides = nil
-      
+
       local listEdgesOut = oldNode:getEdgesOut()
       for i=1, #listEdgesOut do
          copiedEdgeInside = SequentEdge:new(listEdgesOut[i]:getLabel(), newNode, listEdgesOut[i]:getDestino())
@@ -645,18 +645,18 @@ end
 
 function applyFocusRule(sequentNode, formulaNode)
    logger:debug("Focus: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
-   
+
    local newSequentNode, seqListNodes, seqListEdges = HelperModule.createNewSequent(sequentNode)
-   
+
    graph:addNodes(seqListNodes)
-   graph:addEdges(seqListEdges)   
+   graph:addEdges(seqListEdges)
    local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
-   
+
    if formulaNode:getInformation("type") == opImp.graph then
       local printFormula = HelperModule.getOriginalFormulaCopied(formulaNode)
-      newEdgeDed:setInformation("rule", "\\mbox{focus}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,printFormula:getLabel():len()).."}")      
+      newEdgeDed:setInformation("rule", "\\mbox{focus}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,printFormula:getLabel():len()).."}")
    else
-      newEdgeDed:setInformation("rule", "\\mbox{focus}-"..formulaNode:getLabel())         
+      newEdgeDed:setInformation("rule", "\\mbox{focus}-"..formulaNode:getLabel())
    end
    graph:addEdge(newEdgeDed)
 
@@ -666,7 +666,7 @@ function applyFocusRule(sequentNode, formulaNode)
    if formulaNode:getInformation("type") == opImp.graph then
       newFormulaNode = SequentNode:new(formulaNode:getInformation("type"))
       newFormulaNode:setInformation("originalFormula", formulaNode)
-      local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino()) 
+      local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())
       local newEdgeDir = SequentEdge:new(lblEdgeDir, newFormulaNode, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
       graph:addEdge(newEdgeEsq)
       graph:addEdge(newEdgeDir)
@@ -683,25 +683,25 @@ function applyFocusRule(sequentNode, formulaNode)
    graph:addEdge(newEdgeSequent)
 
    local focusedFormulas = newSequentNode:getInformation("focusedFormulas")
-   focusedFormulas:add(HelperModule.getOriginalFormulaCopied(formulaNode))   
+   focusedFormulas:add(HelperModule.getOriginalFormulaCopied(formulaNode))
 
    local lweight = goalsList[sequentNode:getLabel()].weight
    goalsList[newSequentNode:getLabel()] = {goal = generateNewGoal(newSequentNode), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
-   logger:info("applyFocusRule - "..sequentNode:getLabel().." was expanded")       
-   
+   logger:info("applyFocusRule - "..sequentNode:getLabel().." was expanded")
+
    return graph, newSequentNode, newFormulaNode
 end
 
 function applyRestartRule(sequentNode, formulaNode)
    logger:debug("Restart: Expanding sequent "..sequentNode:getLabel())
-   
+
    local newSequentNode, seqListNodes, seqListEdges = HelperModule.createNewSequent(sequentNode)
-  
+
    graph:addNodes(seqListNodes)
    graph:addEdges(seqListEdges)
    local newEdgeDed = SequentEdge:new(lblEdgeDeducao, sequentNode, newSequentNode)
-   newEdgeDed:setInformation("rule", "\\mbox{restart}-"..formulaNode:getLabel())         
+   newEdgeDed:setInformation("rule", "\\mbox{restart}-"..formulaNode:getLabel())
    graph:addEdge(newEdgeDed)
 
    local formulaOutsideBracketEdge = newSequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0")
@@ -719,7 +719,7 @@ function applyRestartRule(sequentNode, formulaNode)
    local formulaOutsideInBracketEdge = findFormulaInBracket(newBracketNode, formulaOutsideBracketEdge:getDestino())
 
    local restartedFormulas = newSequentNode:getInformation("restartedFormulas")
-   
+
    local listEdgesOut = sequentLeftNode:getEdgesOut()
    for i=1, #listEdgesOut do
       if listEdgesOut[i]:getLabel() ~= "0" then
@@ -728,13 +728,13 @@ function applyRestartRule(sequentNode, formulaNode)
          end
 
          if listEdgesOut[i]:getInformation("reference") == formulaNode then
-            listEdgesOut[i]:setInformation("reference", nil)                      
+            listEdgesOut[i]:setInformation("reference", nil)
          end
       end
-   end   
+   end
 
     -- Right Side
-   local sequentRightNode = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()   
+   local sequentRightNode = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
    local newEdgeBracket = SequentEdge:new("1", sequentRightNode, newBracketNode)
 
    graph:addEdge(newEdgeBracket)
@@ -742,34 +742,34 @@ function applyRestartRule(sequentNode, formulaNode)
    if formulaOutsideInBracketEdge ~= nil then
       graph:removeEdge(formulaOutsideInBracketEdge)
    end
-   
-   graph:removeEdge(formulaOutsideBracketEdge)   
+
+   graph:removeEdge(formulaOutsideBracketEdge)
    graph:removeEdge(formulaInBracketEdge)
 
    local newBracketFormulaEdge = SequentEdge:new(""..contBracketFormulas, newBracketNode, formulaOutsideBracketEdge:getDestino())
    contBracketFormulas = contBracketFormulas + 1
    graph:addEdge(newBracketFormulaEdge)
-     
+
    local edgeSequentToFormula = SequentEdge:new("0", newSequentNode:getEdgeOut(lblEdgeDir):getDestino(), formulaNode)
    graph:addEdge(edgeSequentToFormula)
-  
+
    newSequentNode:setInformation("focusedFormulas", Set:new())
 
-   newSequentNode:setInformation("leftExpandedFormulas", {})   
+   newSequentNode:setInformation("leftExpandedFormulas", {})
 
-   restartedFormulas:add(formulaNode)  
+   restartedFormulas:add(formulaNode)
 
    local lweight = goalsList[sequentNode:getLabel()].weight
    goalsList[newSequentNode:getLabel()] = {goal = generateNewGoal(newSequentNode), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
-   logger:info("applyRestartRule - "..sequentNode:getLabel().." was expanded")       
-   
+   logger:info("applyRestartRule - "..sequentNode:getLabel().." was expanded")
+
    return graph
 end
 
 function applyImplyLeftRule(sequentNode, formulaNode)
    logger:debug("ImplyLeft: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
-   
+
    local NewSequentNode1, seqListNodes1, seqListEdges1=HelperModule.createNewSequent(sequentNode)
    local NewSequentNode2, seqListNodes2, seqListEdges2=HelperModule.createNewSequent(sequentNode)
 
@@ -787,17 +787,17 @@ function applyImplyLeftRule(sequentNode, formulaNode)
 
    local printFormula = nil
    printFormula = HelperModule.getOriginalFormulaCopied(formulaNode)
-   newEdge1:setInformation("rule", opImp.tex.."\\mbox{left}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,formulaNode:getLabel():len()).."}")      
-   newEdge2:setInformation("rule", opImp.tex.."\\mbox{left}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,formulaNode:getLabel():len()).."}")      
-      
+   newEdge1:setInformation("rule", opImp.tex.."\\mbox{left}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,formulaNode:getLabel():len()).."}")
+   newEdge2:setInformation("rule", opImp.tex.."\\mbox{left}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,formulaNode:getLabel():len()).."}")
+
    graph:addEdge(newEdge1)
    graph:addEdge(newEdge2)
 
-   local newNodeBrackets, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, NewSequentNode1)   
- 
+   local newNodeBrackets, numberOfFormulasInside = createBracketOrFocus(lblNodeBrackets, NewSequentNode1)
+
    local nodeFormulaOutsideBrackets = nodeRight1:getEdgeOut("0"):getDestino()
    graph:removeEdge(nodeRight1:getEdgeOut("0"))
-   
+
    local formulasInsideBracketEdges = newNodeBrackets:getEdgesOut()
    local formulaInBracketEdge = findFormulaInBracket(newNodeBrackets, nodeFormulaOutsideBrackets)
 
@@ -813,9 +813,9 @@ function applyImplyLeftRule(sequentNode, formulaNode)
             local newFormulaNode = nil
             if formulaNode:getEdgeOut(lblEdgeEsq) ~= nil then
                newFormulaNode = SequentNode:new(formulaNode:getInformation("type"))
-               newFormulaNode:setInformation("originalFormula", formulaNode)               
+               newFormulaNode:setInformation("originalFormula", formulaNode)
 
-               local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino()) 
+               local newEdgeEsq = SequentEdge:new(lblEdgeEsq, newFormulaNode, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())
                local newEdgeDir = SequentEdge:new(lblEdgeDir, newFormulaNode, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
 
                graph:addEdge(newEdgeEsq)
@@ -823,34 +823,34 @@ function applyImplyLeftRule(sequentNode, formulaNode)
                graph:addNode(newFormulaNode)
             else
                newFormulaNode = formulaNode
-            end            
-            
+            end
+
 
             local newEdgeFormula = SequentEdge:new(""..numberOfFormulasOnLeft, nodeLeft1, newFormulaNode)
             numberOfFormulasOnLeft = numberOfFormulasOnLeft + 1
             graph:addEdge(newEdgeFormula)
-            
+
             newEdgeFormula:setInformation("reference", nodeFormulaOutsideBrackets)
          end
       end
    end
-   
+
    -- 1.1. Put C inside bracket.
    if formulaInBracketEdge == nil then
       local newEdgeInsideBrackets = SequentEdge:new(""..contBracketFormulas, newNodeBrackets, nodeFormulaOutsideBrackets)
       contBracketFormulas = contBracketFormulas + 1
       graph:addEdge(newEdgeInsideBrackets)
    end
-   
+
    local newBracketsEdge = SequentEdge:new("1", nodeRight1, newNodeBrackets)
    graph:addEdge(newBracketsEdge)
 
    -- 1.2. Put A (from A \to B) on the right.
-   local newEdgeDir = SequentEdge:new("0", nodeRight1, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())   
+   local newEdgeDir = SequentEdge:new("0", nodeRight1, formulaNode:getEdgeOut(lblEdgeEsq):getDestino())
    graph:addEdge(newEdgeDir)
-   
+
    -- 2. Create right premiss sequent:
-   
+
    -- 2.1. Leave A \to B on the left
    local listEdgesOut = nodeLeft2:getEdgesOut()
 
@@ -859,37 +859,37 @@ function applyImplyLeftRule(sequentNode, formulaNode)
 
    local newEdgeSequent = SequentEdge:new("0", nodeLeft2, newFocusNode)
    graph:addEdge(newEdgeSequent)
-   
-   local newEdgeLeft = SequentEdge:new(""..(#nodeLeft2:getEdgesOut()+1), nodeLeft2, formulaNode:getEdgeOut(lblEdgeDir):getDestino()) 
+
+   local newEdgeLeft = SequentEdge:new(""..(#nodeLeft2:getEdgesOut()+1), nodeLeft2, formulaNode:getEdgeOut(lblEdgeDir):getDestino())
    graph:addEdge(newEdgeLeft)
 
    local contextFormula = sequentNode:getEdgeOut(lblEdgeDir):getDestino():getEdgeOut("0"):getDestino()
-   
+
    local leftExpandedFormulas = NewSequentNode1:getInformation("leftExpandedFormulas")
    if leftExpandedFormulas[contextFormula:getLabel()] == nil then
       leftExpandedFormulas[contextFormula:getLabel()] = Set:new()
    end
    local orginalFormula = HelperModule.getOriginalFormulaCopied(formulaNode)
    leftExpandedFormulas[contextFormula:getLabel()]:add(orginalFormula)
-   
+
    leftExpandedFormulas = NewSequentNode2:getInformation("leftExpandedFormulas")
    if leftExpandedFormulas[contextFormula:getLabel()] == nil then
       leftExpandedFormulas[contextFormula:getLabel()] = Set:new()
    end
-   leftExpandedFormulas[contextFormula:getLabel()]:add(orginalFormula)     
-   
+   leftExpandedFormulas[contextFormula:getLabel()]:add(orginalFormula)
+
    local lweight = goalsList[sequentNode:getLabel()].weight
-   goalsList[NewSequentNode1:getLabel()] = {goal = generateNewGoal(NewSequentNode1), weight = lweight}   
+   goalsList[NewSequentNode1:getLabel()] = {goal = generateNewGoal(NewSequentNode1), weight = lweight}
    goalsList[NewSequentNode2:getLabel()] = {goal = generateNewGoal(NewSequentNode2), weight = lweight+1}
    sequentNode:setInformation("isExpanded", true)
    logger:info("applyImplyLeftRule - "..sequentNode:getLabel().." was expanded")
 
-   return graph      
+   return graph
 end
 
 function applyImplyRightRule(sequentNode, formulaNode)
    logger:debug("ImplyRight: Expanding sequent "..sequentNode:getLabel().. " and formula "..formulaNode:getLabel())
-   
+
    local NewSequentNode, seqListNodes, seqListEdges=HelperModule.createNewSequent(sequentNode)
 
    graph:addNodes(seqListNodes)
@@ -899,9 +899,9 @@ function applyImplyRightRule(sequentNode, formulaNode)
    local newEdge1 = SequentEdge:new(lblEdgeDeducao, sequentNode, NewSequentNode)
 
    local printFormula = HelperModule.getOriginalFormulaCopied(formulaNode)
-   newEdge1:setInformation("rule", opImp.tex.."\\mbox{right}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,printFormula:getLabel():len()).."}")      
-   
-   graph:addEdge(newEdge1)      
+   newEdge1:setInformation("rule", opImp.tex.."\\mbox{right}-"..opImp.tex.."_{"..printFormula:getLabel():sub(6,printFormula:getLabel():len()).."}")
+
+   graph:addEdge(newEdge1)
 
    local listEdgesOut = nodeRight:getEdgesOut()
    for i=1, #listEdgesOut do
@@ -922,14 +922,14 @@ function applyImplyRightRule(sequentNode, formulaNode)
    local lweight = goalsList[sequentNode:getLabel()].weight
    goalsList[NewSequentNode:getLabel()] = {goal = generateNewGoal(NewSequentNode), weight = lweight}
    sequentNode:setInformation("isExpanded", true)
-   logger:info("applyImplyRightRule - "..sequentNode:getLabel().." was expanded")          
+   logger:info("applyImplyRightRule - "..sequentNode:getLabel().." was expanded")
 
-   return graph     
+   return graph
 end
 
 function applyImplyRule(sequentNode, formulaNode)
 
-   local sideOfOperator = verifySideOfOperator(sequentNode, formulaNode)      
+   local sideOfOperator = verifySideOfOperator(sequentNode, formulaNode)
 
    if sideOfOperator == leftSide then
       return applyImplyLeftRule(sequentNode, formulaNode)
@@ -937,7 +937,7 @@ function applyImplyRule(sequentNode, formulaNode)
       return applyImplyRightRule(sequentNode, formulaNode)
    elseif sideOfOperator == nil then
       return nil
-   end          
+   end
 
    return graph
 end
@@ -949,7 +949,7 @@ function LogicModule.createGraphFromTable(seq_tabela)
    local letters = {}
    sufix = 0
 
-   if seq_tabela=="empty" then 
+   if seq_tabela=="empty" then
       graph = createGraphEmpty()
       return graph
    else
@@ -961,25 +961,25 @@ end
 --- Expand a operator in a sequent.
 --- For a specific graph and a node of that graph, it expands the node if that node is an operator.
 --- The operator node is only expanded if a sequent node were previusly selected.
---- @param agraph 
---- @param sequentNode  
---- @param formulaNode 
+--- @param agraph
+--- @param sequentNode
+--- @param formulaNode
 function LogicModule.expandNode(agraph, sequentNode, formulaNode)
    local typeOfNode = formulaNode:getInformation("type")
-   
+
    graph = agraph
 
    if not sequentNode:getInformation("isExpanded") then
-      if typeOfNode == opImp.graph then                 
-         graph = applyImplyRule(sequentNode, formulaNode)  
+      if typeOfNode == opImp.graph then
+         graph = applyImplyRule(sequentNode, formulaNode)
       end
    end
 
-   return true, graph      
+   return true, graph
 end
 
 function LogicModule.expandAll(agraph, seqLimit, pstep)
-  
+
    local isAllExpanded = true
    local k, goalEntry, focusedFormula
 
@@ -991,17 +991,17 @@ function LogicModule.expandAll(agraph, seqLimit, pstep)
 
    graph = agraph
 
-   table.sort(goalsList, compareGoalsListWeight)   
-   
+   table.sort(goalsList, compareGoalsListWeight)
+
    for k,goalEntry in pairs(goalsList) do
 
       --if goalEntry.weight == 1 then
-      
+
          local seq = goalEntry.goal:getSequent()
 
          if not seq:getInformation("isExpanded") then
             logger:info("expandAll - Expanding seq "..k)
-            
+
             isAllExpanded = false
 
             local formulaNode = nil
@@ -1056,16 +1056,16 @@ function LogicModule.expandAll(agraph, seqLimit, pstep)
 
                   table.sort(goalsList, compareGoalsListWeight)
                else
-                  markCounterExamplePath(seq) 
+                  markCounterExamplePath(seq)
                   goalsList = {}
                   nstep = 0
                   logger:info("expandAll - "..seq:getLabel().." não pode mais ser expandido.")
-                  --break                     
-               end                  
+                  --break
+               end
             end
             break
          end
-      --end      
+      --end
    end
 
    local ret
@@ -1078,13 +1078,13 @@ function LogicModule.expandAll(agraph, seqLimit, pstep)
       if isAllExpanded then
          logger:info("expandAll - All sequents expanded!")
       end
-      ret = true      
+      ret = true
    else
       graph = LogicModule.expandAll(graph, seqLimit, pstep)
       ret = false
    end
 
-   return graph, ret 
+   return graph, ret
 end
 
 function LogicModule.getGraph()
