@@ -15,7 +15,7 @@ require 'Util/utility'
 require "Logic/SequentCalculus/SequentCalculusLogic"
 require "Logic/SequentCalculus/SequentCalculusAPI"
 require 'logging.file'
-require 'io' 
+require 'io'
 
 -- Variáveis globais do modulo
 local inspect = require "inspect"
@@ -39,21 +39,21 @@ local function getInclinacaoAresta(edge)
    local invertSignal = 1 -- para saber para onde o angulo esta virado
    local x1, y1 = edge:getOrigem():getPosition()
    local x2, y2 = edge:getDestino():getPosition()
-   
+
    local a,b,c
-   
+
    -- Calculando o tamanho dos lados do triangulo retangulo que a aresta forma
    -- a = hipotenusa
    -- b e c catetos
    if x1 > x2 then
-      b = x1 - x2               
+      b = x1 - x2
    elseif x2 > x1 then
       b = x2 - x1
       x2Maiorx1 = true
    else
       return math.rad(-90) -- A aresta esta na vertical
    end
-   
+
    if y1 > y2 then
       c = y1 - y2
    elseif y2 > y1 then
@@ -62,14 +62,14 @@ local function getInclinacaoAresta(edge)
    else
       return math.rad(0) -- A aresta esta na horizontal
    end
-   
+
    -- Distancia entre 2 pontos
    a = math.pow(b,2) + math.pow(c,2)
    a = math.sqrt(a)
-   
+
    -- Lei dos cossenos
    inclinacao = math.acos( (math.pow(a,2) + math.pow(b,2) - math.pow(c,2))/ (2*a*b) )
-     
+
    -- Ajeitando a rotação para o lado correto
    if y2Maiory1 and x2Maiorx1 then
       invertSignal = 1
@@ -78,7 +78,7 @@ local function getInclinacaoAresta(edge)
    elseif x2Maiorx1 then
       invertSignal = -1
    end
-   
+
    return inclinacao * invertSignal
 end
 
@@ -102,18 +102,18 @@ local function applyForces(graph)
       total_kinetic_energy = 0
       return
    end
-   
-   
+
+
 --   repeat
 --      total_kinetic_energy = 0
-      
+
       for i=1, #nodes do
 
          local Fx = 0.0
          local Fy = 0.0
          local Vx = 0.0
          local Vy = 0.0
-         
+
          nodes[i]:setInformation("Fx",Fx)
          nodes[i]:setInformation("Fy",Fy)
          for j=1, #nodes do
@@ -158,7 +158,7 @@ local function applyForces(graph)
                nodes[i]:setInformation("Fy", Fy)
             end
          end
-         
+
          Vx = nodes[i]:getInformation("Vx")+(nodes[i]:getInformation("Fx")*0.85)
          Vy = nodes[i]:getInformation("Vy")+(nodes[i]:getInformation("Fy")*0.85)
 
@@ -167,14 +167,14 @@ local function applyForces(graph)
          nodes[i]:setInformation("Vy", Vy)
          nodes[i]:setPositionY(nodes[i]:getPositionY()+nodes[i]:getInformation("Vy"))
          total_kinetic_energy = total_kinetic_energy + (nodes[i]:getInformation("m") * ((nodes[i]:getInformation("Vx")^2) + (nodes[i]:getInformation("Vy")^2)))
-         
+
          logger:debug("applyForces - Fx: "..nodes[i]:getInformation("Fx"))
-         logger:debug("applyForces - Fy: "..nodes[i]:getInformation("Fy"))                        
+         logger:debug("applyForces - Fy: "..nodes[i]:getInformation("Fy"))
          logger:debug("applyForces - Vx: "..nodes[i]:getInformation("Vx"))
          logger:debug("applyForces - Vy: "..nodes[i]:getInformation("Vy"))
          logger:debug("applyForces -  m: "..nodes[i]:getInformation("m"))
          logger:debug("applyForces - Vx^2: "..nodes[i]:getInformation("Vx")^2)
-         logger:debug("applyForces - Vy^2: "..nodes[i]:getInformation("Vy")^2)         
+         logger:debug("applyForces - Vy^2: "..nodes[i]:getInformation("Vy")^2)
          logger:debug("applyForces - total_kinetic_energy (m * (Vx^2 + Vy^2)): "..total_kinetic_energy)
 
          if total_kinetic_energy < 100 or total_kinetic_energy > 80000000 then
@@ -189,15 +189,15 @@ end
 
 --- Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
 local function prepareGraphToDraw(graph)
-   
+
    nodes = graph:getNodes()
-   
+
    posX = xBegin
    posY = yBegin
-   
+
    if nodes ~= nil then
-      for  i = 1, #nodes do             
-         if nodes[i]:getPosition() == nil then -- só atualiza os nós que nao tem posicao.                       
+      for  i = 1, #nodes do
+         if nodes[i]:getPosition() == nil then -- só atualiza os nós que nao tem posicao.
             nodes[i]:setPosition(posX,posY)
             if i % 2 == 0 then
                posX = posX + 10
@@ -216,36 +216,36 @@ end
 --- Receive a graph and draws it on the screen.
 local function drawGraphEvent(graph)
    local i = 1
-   
+
    assert( getmetatable(graph) == Graph_Metatable , "drawGraphEvent expects a graph.")
-   
+
    local nodes = graph:getNodes()
    local edges = graph:getEdges()
-   
+
    -- Desenha os vertices
    if nodes ~= nil then
       while i <= #nodes do
-         
+
          local node = nodes[i]
-         
+
          if isExpandingFormula then
-           if node:getInformation("isSelected") == true then 
+           if node:getInformation("isSelected") == true then
               love.graphics.setColor(255, 255, 0) -- Yellow circle
            end
-         else        
-           if node:getInformation("isProved") == nil then 
+         else
+           if node:getInformation("isProved") == nil then
               love.graphics.setColor(204, 204, 204) -- Gray circle
-           elseif node:getInformation("isProved") == false then 
+           elseif node:getInformation("isProved") == false then
               love.graphics.setColor(255, 0, 0) -- Red circle
-           elseif node:getInformation("isProved") == true then 
-              love.graphics.setColor(0, 0, 255) -- Blue circle           
+           elseif node:getInformation("isProved") == true then
+              love.graphics.setColor(0, 0, 255) -- Blue circle
            end
-           node:setInformation("isSelected", false)           
+           node:setInformation("isSelected", false)
          end
-         
-         if node:getInformation("found") == true then 
+
+         if node:getInformation("found") == true then
             love.graphics.setColor(255, 255, 0) -- Yellow circle
-         end         
+         end
 
          if node:getPositionX() ~= nil then
             love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
@@ -253,7 +253,7 @@ local function drawGraphEvent(graph)
             love.graphics.circle("line", node:getPositionX(), node:getPositionY(), 6)
             love.graphics.print(node:getLabel(), node:getPositionX() - 10, node:getPositionY() - circleSeparation , 0, escalaLetraVertice, escalaLetraVertice )
          end
-         
+
          i = i + 1
       end
    end
@@ -262,7 +262,7 @@ local function drawGraphEvent(graph)
    -- Desenha as arestas
    if edges ~= nil then
       while i <= #edges do
-         
+
          local edge = edges[i]
 
          love.graphics.setColor(0, 0, 0, 99) -- Black 99%
@@ -274,7 +274,7 @@ local function drawGraphEvent(graph)
             inclinacao = getInclinacaoAresta(edge)
             love.graphics.print(edge:getLabel(), (x1 + x2)/2 , (y1 + y2)/2  , inclinacao, escalaLetraAresta, escalaLetraAresta )
          end
-         
+
          i = i + 1
       end
    end
@@ -283,12 +283,12 @@ local function drawGraphEvent(graph)
 end
 
 --- Esta função verifica se algum vertice foi clicado pelo usuário e retorna este vertice.
-local function getNodeClicked() 
+local function getNodeClicked()
    -- Varrer todo o grafo procurando o vertice que pode ter sido clicado.
    nodes = proofGraph:getNodes()
    for i=1, #nodes do
       x,y = nodes[i]:getPosition()
-      
+
       if (love.mouse.getX() <= x + raioDoVertice) and (love.mouse.getX() >= x - raioDoVertice) then
          if (love.mouse.getY() <= y + raioDoVertice) and (love.mouse.getY() >= y - raioDoVertice) then
             -- Este vertice foi clicado
@@ -318,18 +318,18 @@ end
 local function expandAll()
    logger:debug("expandAll - Begin of expandAll function")
    if proofStarted() then
-      local graph = LogicModule.expandAll(proofGraph)                    
+      local graph = LogicModule.expandAll(proofGraph)
       proofGraph = prepareGraphToDraw(graph)
    end
 end
 
 local function inputFormula()
    logger:debug("inputFormula - Begin of inputFormula function")
-   editingState = InputingFormula   
-  
+   editingState = InputingFormula
+
    text = "Type your formula or choose an example below: "
    input_formula = ""
-   
+
    proofGraph = LogicModule.createGraphFromTable("empty")
    prepareGraphToDraw(proofGraph)
 end
@@ -337,10 +337,10 @@ end
 local function runInput()
    local parsed_formula = parse_input(input_formula)
    t_formula = convert_formula_totable(parsed_formula)
-   
+
    local t_mimp_formula = implicational(t_formula)
    logger:info("inputFormula - alpha: "..convert_formula_tostring(t_mimp_formula))
-   
+
    proofGraph = LogicModule.createGraphFromTable(t_mimp_formula)
    prepareGraphToDraw(proofGraph)
 end
@@ -355,9 +355,9 @@ end
 local function runCommand()
    input_command = input_command:gsub("%(", "%(\"")
    input_command = input_command:gsub("%)", "\"%)")
-   input_command = input_command:gsub(",", "\",\"")      
-   input_command = input_command:gsub(",\" ", ",\"")   
-   
+   input_command = input_command:gsub(",", "\",\"")
+   input_command = input_command:gsub(",\" ", ",\"")
+
    loadstring(input_command)()
    proofGraph = LogicModule.getGraph()
    prepareGraphToDraw(proofGraph)
@@ -367,7 +367,7 @@ end
 local function expandFormula()
    if proofStarted() then
       if (nodeExpanding ~= nil) then
-         local ret, graph = LogicModule.expandNode(proofGraph, proofNode, nodeExpanding)                    
+         local ret, graph = LogicModule.expandNode(proofGraph, proofNode, nodeExpanding)
          proofGraph = prepareGraphToDraw(graph)
       end
    end
@@ -380,14 +380,14 @@ local function printProof()
       if ret then
          os.showProof()
       end
-   end  
+   end
 end
 
 local function printGraph()
    if proofStarted() then
       PrintModule.printGraph(proofGraph)
       os.showGraph()
-   end  
+   end
 end
 
 -- Events functions
@@ -398,7 +398,7 @@ local function showInputTextEvent()
    font = love.graphics.newFont(12)
 
    love.graphics.setColor(0, 0, 255)
-   love.graphics.setFont(font)  
+   love.graphics.setFont(font)
    love.graphics.printf(text, 0, 0, love.graphics.getWidth())
 
    local y = 200
@@ -420,8 +420,8 @@ local function expandAllButtonEvent()
    local yPos = 5
    local xLen = 55
    local yLen = 40
-   
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then    
+
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
       if love.mouse.isDown(leftMouseButton) then
          expandAll()
          love.timer.sleep(buttonTime)
@@ -445,9 +445,9 @@ local function inputFormulaButtonEvent()
    local xPos = windowWidth - 60
    local yPos = 50
    local xLen = 55
-   local yLen = 40  
-   
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then     
+   local yLen = 40
+
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
       if love.mouse.isDown(leftMouseButton) then
          inputFormula()
          love.timer.sleep(buttonTime)
@@ -473,12 +473,12 @@ local function expandFormulaButtonEvent()
    local xLen = 55
    local yLen = 40
 
-   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then     
-      if love.mouse.isDown(leftMouseButton) then  
-         -- TODO remover a referência a focus?       
+   if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
+      if love.mouse.isDown(leftMouseButton) then
+         -- TODO remover a referência a focus?
          isChoosingFocus = true
-         love.timer.sleep(buttonTime*2)         
-      end                        
+         love.timer.sleep(buttonTime*2)
+      end
       love.timer.sleep(buttonTime*2)
       love.graphics.setColor(100, 100, 200)
    else
@@ -502,7 +502,7 @@ local function printProofButtonEvent()
    local yLen = 40
    if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
       if love.mouse.isDown(leftMouseButton) then
-         printProof()                                   
+         printProof()
          love.timer.sleep(buttonTime)
       end
       love.graphics.setColor(100, 100, 200)
@@ -527,7 +527,7 @@ local function printGraphButtonEvent()
    local yLen = 40
    if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
       if love.mouse.isDown(leftMouseButton) then
-         printGraph()                                   
+         printGraph()
          love.timer.sleep(buttonTime)
       end
       love.graphics.setColor(100, 100, 200)
@@ -546,37 +546,37 @@ local function printGraphButtonEvent()
 end
 
 --- Esta função é chamada pela love.draw.
--- A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
+-- A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo
 -- conforme o botão continuar sendo pressionado e caso o clique tenha sido em um vertice esta função:
 -- 1- Ira alterar a posição de desenho do vertice, criando o efeito do drag and drop, ou;
 -- 2- Ira mover o screen todo, ou ;
 -- 3- Ira indicar um Sequent como foco (se isExpandingFormula for verdadeiro) , ou;
--- 4- Ira chamar a funcao que expande o noh (segundo o calculo lohgico implementado), se 
+-- 4- Ira chamar a funcao que expande o noh (segundo o calculo lohgico implementado), se
 -- o foco (no do tipo Sequent) estiver definido.
-local function dragNodeOrScreenOrSelectFocusEvent()     
+local function dragNodeOrScreenOrSelectFocusEvent()
 
    -- TODO remover a parte do focus?
    if love.mouse.isDown(leftMouseButton) and isChoosingFocus then
 
       proofNode = getNodeClicked()
-      
+
       if proofNode then
          isExpandingFormula = true
-         love.timer.sleep(2*buttonTime)    
+         love.timer.sleep(2*buttonTime)
       end
-      
+
    elseif love.mouse.isDown(leftMouseButton) and isExpandingFormula then
 
       nodeExpanding = getNodeClicked()
-      
-      if nodeExpanding then         
+
+      if nodeExpanding then
          isExpandingFormula = false
          expandFormula()
       end
-      
+
    end
 
-   if love.mouse.isDown(leftMouseButton) and not isDragging then            
+   if love.mouse.isDown(leftMouseButton) and not isDragging then
 
       nodeMoving = getNodeClicked()
       isDragging = true
@@ -585,38 +585,38 @@ local function dragNodeOrScreenOrSelectFocusEvent()
       yInitial = love.mouse.getY()
       -- Mudar o xInicial e o yInicial sempre que o mouse parar tb seria uma boa!
 
-      -- Vericia se o usuário quer arrastar a tela      
-   elseif not love.mouse.isDown(leftMouseButton) then                               
+      -- Vericia se o usuário quer arrastar a tela
+   elseif not love.mouse.isDown(leftMouseButton) then
       isDragging = false
       nodeMoving = "nao vazio"
-      
-      -- Usuario arrastando um vertice  
+
+      -- Usuario arrastando um vertice
    elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
       nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
       -- applyForces(proofGraph)
-      
-    -- Usuario arrastando toda a tela 
-   elseif nodeMoving == nil then        
+
+    -- Usuario arrastando toda a tela
+   elseif nodeMoving == nil then
       nodes = proofGraph:getNodes()
-      for i=1, #nodes do                        
+      for i=1, #nodes do
          x,y = nodes[i]:getPosition()
          deslocamentoX = math.abs(love.mouse.getX() - xInitial)/10
          deslocamentoY = math.abs(love.mouse.getY() - yInitial)/10
-         
+
          if love.mouse.getX() < xInitial then
             x = x - 5
          elseif love.mouse.getX() > xInitial then
             x = x + 5
          end
-         
+
          if love.mouse.getY() < yInitial then
             y = y - 5
          elseif love.mouse.getY() > yInitial then
-            y = y + 5                           
+            y = y + 5
          end
-         
+
          nodes[i]:setPosition(x, y)
-      end                               
+      end
    end
 end
 
@@ -634,9 +634,9 @@ function love.keypressed(key)
    elseif key == "p" and love.keyboard.isDown("lctrl") then
       printProof()
    elseif key == "g" and love.keyboard.isDown("lctrl") then
-      printGraph()      
+      printGraph()
    elseif key == "t" and love.keyboard.isDown("lctrl") then
-      inputCommand()   
+      inputCommand()
    end
 
    if editingState == InputingFormula then
@@ -649,13 +649,13 @@ function love.keypressed(key)
          if tonumber(input_formula) then
             input_formula = formulas[tonumber(input_formula)]
          end
-         
+
          if input_formula ~= "" then
             local status, err = pcall(runInput)
             if not status then
                input_formula = err
-               text = "Type your formula or choose an example below: " .. input_formula            
-            end   
+               text = "Type your formula or choose an example below: " .. input_formula
+            end
          end
       end
    end
@@ -670,8 +670,8 @@ function love.keypressed(key)
          local status, err = pcall(runCommand)
          if not status then
             input_command = err
-            text = "Type your command: " .. input_command            
-         end         
+            text = "Type your command: " .. input_command
+         end
       end
    end
 end
@@ -686,7 +686,7 @@ function love.textinput(t)
    end
 end
 
-function love.load(arg)  
+function love.load(arg)
    -- Prepare to debug with ZeroBrane
    if arg[#arg] == "-debug" then
       require("mobdebug").start()
@@ -705,7 +705,7 @@ function love.load(arg)
    -- TODO remover a referência a focus?
    isChoosingFocus = false
    isExpandingFormula = false
-   
+
    -- Initialize the proof graph
    inputFormula()
 end
@@ -714,9 +714,9 @@ function love.draw()
    showInputTextEvent()
    expandAllButtonEvent()
    inputFormulaButtonEvent()
-   expandFormulaButtonEvent()    
+   expandFormulaButtonEvent()
    printProofButtonEvent()
-   printGraphButtonEvent()            
+   printGraphButtonEvent()
    drawGraphEvent(proofGraph)
-   dragNodeOrScreenOrSelectFocusEvent()         
+   dragNodeOrScreenOrSelectFocusEvent()
 end
