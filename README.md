@@ -18,6 +18,14 @@ Lpeg is a pattern-matching library for Lua. We use lpeg to parse input formulae 
 
 lualogging is used to register log messages. It also can be installed using [luarocks](http://luarocks.org/).
 
+For PDF export (via LaTeX) you'll need at least the following packages
+from CTAN:
+
+* LKproof
+* incgraph
+
+For other export options, install graphviz.
+
 Usage
 =====
 
